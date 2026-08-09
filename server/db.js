@@ -22,7 +22,16 @@ function getDbConfig() {
         connectTimeout: 10000,
         ...(useSsl && { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } })
       };
-      console.log(`Connecting to MySQL at ${cfg.host}:${cfg.port}/${cfg.database}`);
+      console.log('DB AUTH DEBUG:', {
+        host: cfg.host,
+        port: cfg.port,
+        database: cfg.database,
+        user: cfg.user,
+        passwordExists: Boolean(cfg.password),
+        passwordLength: cfg.password ? cfg.password.length : 0,
+        sslEnabled: Boolean(cfg.ssl),
+        ssl: cfg.ssl
+      });
       return cfg;
     } catch {
     }
@@ -44,7 +53,16 @@ function getDbConfig() {
       connectTimeout: 10000,
       ...(useSsl && { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } })
     };
-    console.log(`Connecting to MySQL at ${cfg.host}:${cfg.port}/${cfg.database}`);
+    console.log('DB AUTH DEBUG:', {
+      host: cfg.host,
+      port: cfg.port,
+      database: cfg.database,
+      user: cfg.user,
+      passwordExists: Boolean(cfg.password),
+      passwordLength: cfg.password ? cfg.password.length : 0,
+      sslEnabled: Boolean(cfg.ssl),
+      ssl: cfg.ssl
+    });
     return cfg;
   }
 
