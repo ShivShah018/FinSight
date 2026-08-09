@@ -171,19 +171,18 @@ const authController = {
         );
 
         // Send email with raw token
-        try {
-          await sendPasswordResetEmail(user.email, rawToken);
-        } catch (emailErr) {
-          console.error('[emailService] Email dispatch failed:', emailErr.message);
+        const result = await sendPasswordResetEmail(user.email, rawToken);
+        if (!result.success) {
+          console.error(`[authController] Password reset email failed for ${user.email}: ${result.error}`);
         }
+      } else {
+        console.log(`[authController] Forgot password requested for email not found in database: ${trimmedEmail}`);
       }
 
       return res.status(200).json(genericResponse);
     } catch (error) {
       console.error('Forgot password error:', error);
-      return res.status(200).json({
-        message: "If an account with that email exists, a password reset link has been sent."
-      });
+      return res.status(200).json(genericResponse);
     }
   },
 
