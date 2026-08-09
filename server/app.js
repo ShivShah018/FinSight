@@ -41,13 +41,10 @@ app.get('/health', (req, res) => {
   return res.status(200).json({
     status: 'healthy',
     version: appVersion,
-    smtp: {
-      configured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
-      host_set: !!process.env.SMTP_HOST,
-      host_value: process.env.SMTP_HOST || null,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      user_set: !!process.env.SMTP_USER,
-      pass_set: !!process.env.SMTP_PASS,
+    email: {
+      provider: 'resend',
+      configured: !!process.env.RESEND_API_KEY,
+      resend_api_key_set: !!process.env.RESEND_API_KEY,
       email_from_set: !!process.env.EMAIL_FROM,
       frontend_url: process.env.FRONTEND_URL || 'https://fin-sight-gibqyxvx0-shivshah18.vercel.app'
     }
