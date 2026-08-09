@@ -99,7 +99,13 @@ const insightController = {
         amount: parseFloat(r.amount)
       }));
 
-      const prediction = await runMl('predict', transactions);
+      let prediction = { predicted_total: 0, trend: "insufficient_data", confidence: 0 };
+      try {
+        prediction = await runMl('predict', transactions);
+      } catch (err) {
+        console.warn('Linear Regression prediction failed/unavailable:', err.message);
+      }
+
       return res.status(200).json(prediction);
     } catch (error) {
       console.error('Predict spending error:', error);
