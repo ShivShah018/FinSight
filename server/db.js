@@ -8,6 +8,7 @@ function getDbConfig() {
   if (mysqlUrl) {
     try {
       const parsed = new URL(mysqlUrl);
+      const useSsl = process.env.MYSQL_SSL === 'true' || parsed.searchParams.has('ssl');
       const cfg = {
         host: parsed.hostname,
         port: parseInt(parsed.port, 10) || 3306,
@@ -18,9 +19,10 @@ function getDbConfig() {
         connectionLimit: 10,
         queueLimit: 0,
         dateStrings: true,
-        connectTimeout: 10000
+        connectTimeout: 10000,
+        ...(useSsl && { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } })
       };
-      console.log(`Connecting to Railway MySQL at ${cfg.host}:${cfg.port}/${cfg.database}`);
+      console.log(`Connecting to MySQL at ${cfg.host}:${cfg.port}/${cfg.database}`);
       return cfg;
     } catch {
     }
@@ -28,6 +30,7 @@ function getDbConfig() {
 
   const host = process.env.MYSQL_HOST || process.env.FINSIGHT_DB_HOST;
   if (host) {
+    const useSsl = process.env.MYSQL_SSL === 'true' || process.env.DB_SSL === 'true';
     const cfg = {
       host,
       port: parseInt(process.env.MYSQL_PORT || process.env.FINSIGHT_DB_PORT || '3306', 10),
@@ -38,7 +41,8 @@ function getDbConfig() {
       connectionLimit: 10,
       queueLimit: 0,
       dateStrings: true,
-      connectTimeout: 10000
+      connectTimeout: 10000,
+      ...(useSsl && { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } })
     };
     console.log(`Connecting to MySQL at ${cfg.host}:${cfg.port}/${cfg.database}`);
     return cfg;
