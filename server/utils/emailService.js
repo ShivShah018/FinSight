@@ -1,5 +1,5 @@
 async function sendPasswordResetEmail(toEmail, rawToken) {
-  const frontendUrl = (process.env.FRONTEND_URL || 'https://fin-sight-gibqyxvx0-shivshah18.vercel.app').replace(/\/$/, '');
+  const frontendUrl = (process.env.FRONTEND_URL || 'https://fin-sight-beta-dusky.vercel.app').replace(/\/$/, '');
   const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
   const fromEmail = process.env.EMAIL_FROM || 'FinSight <onboarding@resend.dev>';
   const apiKey = process.env.RESEND_API_KEY;
