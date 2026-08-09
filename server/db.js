@@ -46,16 +46,6 @@ function getDbConfig() {
       enableCleartextPlugin: true,
       ...(useSsl && { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } })
     };
-    console.log('DB CONFIG DIAGNOSTIC:', {
-      user: cfg.user,
-      host: cfg.host,
-      port: cfg.port,
-      database: cfg.database,
-      passwordExists: Boolean(cfg.password),
-      passwordLength: cfg.password ? cfg.password.length : 0,
-      sslSet: process.env.MYSQL_SSL === 'true',
-      sslConfig: cfg.ssl || false
-    });
     console.log(`Connecting to MySQL at ${cfg.host}:${cfg.port}/${cfg.database}`);
     return cfg;
   }

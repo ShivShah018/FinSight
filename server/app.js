@@ -43,10 +43,7 @@ app.get('/health', (req, res) => {
     version: appVersion,
     email: {
       provider: 'resend',
-      configured: !!process.env.RESEND_API_KEY,
-      resend_api_key_set: !!process.env.RESEND_API_KEY,
-      email_from_set: !!process.env.EMAIL_FROM,
-      frontend_url: process.env.FRONTEND_URL || 'https://fin-sight-beta-dusky.vercel.app'
+      configured: !!process.env.RESEND_API_KEY
     }
   });
 });
