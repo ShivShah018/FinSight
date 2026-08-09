@@ -83,15 +83,27 @@ async function initializeSchema() {
     conn = await pool.getConnection();
     const schemaPath = path.join(__dirname, 'database', 'schema_railway.sql');
     if (fs.existsSync(schemaPath)) {
-      const sql = fs.readFileSync(schemaPath, 'utf8');
-      const statements = sql
+      const rawSql = fs.readFileSync(schemaPath, 'utf8');
+      const cleanSql = rawSql
+        .split('\n')
+        .filter(line => !line.trim().startsWith('--'))
+        .join('\n');
+      const statements = cleanSql
         .split(';')
         .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('CREATE DATABASE') && !s.startsWith('USE '));
+        .filter(s => s.length > 0 && !s.toUpperCase().startsWith('CREATE DATABASE') && !s.toUpperCase().startsWith('USE '));
+
+      if (statements.length === 0) {
+        console.warn('Schema initialization warning: 0 statements parsed from schema file.');
+        return;
+      }
+
+      let executedCount = 0;
       for (const stmt of statements) {
         await conn.execute(stmt);
+        executedCount++;
       }
-      console.log('Database schema initialized successfully');
+      console.log(`Database schema initialized successfully (${executedCount} statements executed)`);
     }
   } catch (err) {
     console.error('Schema initialization error:', err.message);
