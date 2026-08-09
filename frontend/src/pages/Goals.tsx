@@ -250,6 +250,7 @@ export const Goals: React.FC = () => {
                         {!isCompleted && (
                           <button
                             onClick={() => completeMutation.mutate(goal.id)}
+                            aria-label="Complete Goal"
                             className="p-1.5 hover:bg-emerald-500/10 text-emerald-400 rounded-lg transition-all cursor-pointer"
                             title="Complete Goal"
                           >
@@ -266,6 +267,7 @@ export const Goals: React.FC = () => {
                         setEditTargetAmount(goal.target_amount.toString());
                         setEditDeadline(goal.deadline || '');
                       }}
+                      aria-label="Edit Goal"
                       className="p-1.5 hover:bg-purple-500/10 text-purple-400 rounded-lg transition-all cursor-pointer"
                       title="Edit Goal"
                     >
@@ -273,6 +275,7 @@ export const Goals: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setDeletingGoal({ id: goal.id, name: goal.name })}
+                      aria-label="Delete Goal"
                       className="p-1.5 hover:bg-rose-500/10 text-rose-400 rounded-lg transition-all cursor-pointer"
                       title="Delete Goal"
                     >
@@ -294,6 +297,7 @@ export const Goals: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Create Savings Goal</h3>
               <button 
                 onClick={() => setShowAddModal(false)}
+                aria-label="Cancel adding savings goal"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -303,10 +307,13 @@ export const Goals: React.FC = () => {
             <form onSubmit={handleAddSubmit} className="space-y-4">
               {/* Goal name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Goal Name</label>
+                <label htmlFor="add-goal-name" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Goal Name</label>
                 <input
+                  id="add-goal-name"
+                  name="name"
                   type="text"
                   placeholder="e.g. New Macbook Pro / Car Fund"
+                  autoComplete="off"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -315,10 +322,13 @@ export const Goals: React.FC = () => {
 
               {/* Target amount */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Amount</label>
+                <label htmlFor="add-goal-target" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Amount</label>
                 <input
+                  id="add-goal-target"
+                  name="target_amount"
                   type="text"
                   placeholder="e.g. 150000"
+                  autoComplete="off"
                   value={targetAmount}
                   onChange={(e) => setTargetAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -327,13 +337,16 @@ export const Goals: React.FC = () => {
 
               {/* Deadline */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Deadline (Optional)</label>
+                <label htmlFor="add-goal-deadline" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Deadline (Optional)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                     <Calendar className="w-5 h-5" />
                   </span>
                   <input
+                    id="add-goal-deadline"
+                    name="deadline"
                     type="date"
+                    autoComplete="off"
                     min={new Date().toISOString().split("T")[0]}
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
@@ -399,6 +412,7 @@ export const Goals: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Deposit to: {fundingGoal.name}</h3>
               <button 
                 onClick={() => setFundingGoal(null)}
+                aria-label="Cancel funding goal"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -407,10 +421,13 @@ export const Goals: React.FC = () => {
 
             <form onSubmit={handleFundSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Amount to add</label>
+                <label htmlFor="fund-goal-amount" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Amount to add</label>
                 <input
+                  id="fund-goal-amount"
+                  name="amount"
                   type="text"
                   placeholder="e.g. 5000"
+                  autoComplete="off"
                   value={fundAmount}
                   onChange={(e) => setFundAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -441,6 +458,7 @@ export const Goals: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Edit Savings Goal</h3>
               <button 
                 onClick={() => setEditingGoal(null)}
+                aria-label="Cancel editing goal"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -467,10 +485,13 @@ export const Goals: React.FC = () => {
               });
             }} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Goal Name</label>
+                <label htmlFor="edit-goal-name" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Goal Name</label>
                 <input
+                  id="edit-goal-name"
+                  name="name"
                   type="text"
                   placeholder="e.g. New Macbook Pro / Car Fund"
+                  autoComplete="off"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -478,10 +499,13 @@ export const Goals: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Amount</label>
+                <label htmlFor="edit-goal-target" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Amount</label>
                 <input
+                  id="edit-goal-target"
+                  name="target_amount"
                   type="text"
                   placeholder="e.g. 150000"
+                  autoComplete="off"
                   value={editTargetAmount}
                   onChange={(e) => setEditTargetAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -489,13 +513,16 @@ export const Goals: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Deadline (Optional)</label>
+                <label htmlFor="edit-goal-deadline" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Target Deadline (Optional)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                     <Calendar className="w-5 h-5" />
                   </span>
                   <input
+                    id="edit-goal-deadline"
+                    name="deadline"
                     type="date"
+                    autoComplete="off"
                     min={new Date().toISOString().split("T")[0]}
                     value={editDeadline}
                     onChange={(e) => setEditDeadline(e.target.value)}

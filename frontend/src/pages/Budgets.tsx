@@ -210,6 +210,7 @@ export const Budgets: React.FC = () => {
                           setEditingBudget({ id: bud.id, category_name: bud.category_name, limit: bud.monthly_limit });
                           setEditLimit(bud.monthly_limit.toString());
                         }}
+                        aria-label="Edit Budget"
                         className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-all cursor-pointer"
                         title="Edit Budget"
                       >
@@ -217,6 +218,7 @@ export const Budgets: React.FC = () => {
                       </button>
                       <button
                         onClick={() => deleteMutation.mutate(bud.id)}
+                        aria-label="Remove Limit"
                         className="p-1.5 hover:bg-rose-500/10 text-rose-400 rounded-lg transition-all cursor-pointer"
                         title="Remove Limit"
                       >
@@ -270,6 +272,7 @@ export const Budgets: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Set Budget Limit</h3>
               <button 
                 onClick={() => setShowAddModal(false)}
+                aria-label="Cancel setting budget limit"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -279,8 +282,11 @@ export const Budgets: React.FC = () => {
             <form onSubmit={handleAddSubmit} className="space-y-4">
               {/* Category selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Expense Category</label>
+                <label htmlFor="add-budget-category" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Expense Category</label>
                 <select
+                  id="add-budget-category"
+                  name="category_id"
+                  autoComplete="off"
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all cursor-pointer"
@@ -296,10 +302,13 @@ export const Budgets: React.FC = () => {
 
               {/* Monthly Limit input */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Monthly Cap Limit</label>
+                <label htmlFor="add-budget-limit" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Monthly Cap Limit</label>
                 <input
+                  id="add-budget-limit"
+                  name="monthly_limit"
                   type="text"
                   placeholder="e.g. 10000"
+                  autoComplete="off"
                   value={monthlyLimit}
                   onChange={(e) => setMonthlyLimit(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -331,6 +340,7 @@ export const Budgets: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Edit Limit: {editingBudget.category_name}</h3>
               <button 
                 onClick={() => setEditingBudget(null)}
+                aria-label="Cancel editing budget limit"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -340,10 +350,13 @@ export const Budgets: React.FC = () => {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               {/* Monthly Limit input */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">New Monthly Cap Limit</label>
+                <label htmlFor="edit-budget-limit" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">New Monthly Cap Limit</label>
                 <input
+                  id="edit-budget-limit"
+                  name="monthly_limit"
                   type="text"
                   placeholder="e.g. 15000"
+                  autoComplete="off"
                   value={editLimit}
                   onChange={(e) => setEditLimit(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"

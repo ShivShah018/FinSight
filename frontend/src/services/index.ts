@@ -9,6 +9,17 @@ import type {
   SpendingCluster 
 } from '../types';
 
+export const AuthService = {
+  forgotPassword: async (email: string) => {
+    const res = await apiClient.post<{ message: string }>('/auth/forgot-password', { email });
+    return res.data;
+  },
+  resetPassword: async (token: string, password: string) => {
+    const res = await apiClient.post<{ message: string }>('/auth/reset-password', { token, password });
+    return res.data;
+  },
+};
+
 export const TransactionService = {
   getAll: async (month?: number, year?: number, limit = 500) => {
     const params: any = { limit };

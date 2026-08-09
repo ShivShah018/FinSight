@@ -63,7 +63,7 @@ export const Register: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Full Name Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
+            <label htmlFor="register-full-name" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
               Full Name
             </label>
             <div className="relative">
@@ -71,8 +71,10 @@ export const Register: React.FC = () => {
                 <User className="w-5 h-5" />
               </span>
               <input
+                id="register-full-name"
                 type="text"
                 placeholder="John Doe"
+                autoComplete="name"
                 {...register('fullName')}
                 className={`w-full bg-slate-950 border text-slate-200 pl-11 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all ${
                   errors.fullName ? 'border-rose-500/60' : 'border-slate-800 hover:border-slate-700'
@@ -88,7 +90,7 @@ export const Register: React.FC = () => {
 
           {/* Email Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
+            <label htmlFor="register-email" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
               Email Address
             </label>
             <div className="relative">
@@ -96,8 +98,10 @@ export const Register: React.FC = () => {
                 <Mail className="w-5 h-5" />
               </span>
               <input
+                id="register-email"
                 type="email"
                 placeholder="you@example.com"
+                autoComplete="email"
                 {...register('email')}
                 className={`w-full bg-slate-950 border text-slate-200 pl-11 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all ${
                   errors.email ? 'border-rose-500/60' : 'border-slate-800 hover:border-slate-700'
@@ -113,7 +117,7 @@ export const Register: React.FC = () => {
 
           {/* Password Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
+            <label htmlFor="register-password" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
               Password
             </label>
             <div className="relative">
@@ -121,8 +125,10 @@ export const Register: React.FC = () => {
                 <KeyRound className="w-5 h-5" />
               </span>
               <input
+                id="register-password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 {...register('password')}
                 className={`w-full bg-slate-950 border text-slate-200 pl-11 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all ${
                   errors.password ? 'border-rose-500/60' : 'border-slate-800 hover:border-slate-700'
@@ -138,7 +144,7 @@ export const Register: React.FC = () => {
 
           {/* Confirm Password Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
+            <label htmlFor="register-confirm-password" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
               Confirm Password
             </label>
             <div className="relative">
@@ -146,8 +152,10 @@ export const Register: React.FC = () => {
                 <KeyRound className="w-5 h-5" />
               </span>
               <input
+                id="register-confirm-password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="new-password"
                 {...register('confirmPassword')}
                 className={`w-full bg-slate-950 border text-slate-200 pl-11 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all ${
                   errors.confirmPassword ? 'border-rose-500/60' : 'border-slate-800 hover:border-slate-700'

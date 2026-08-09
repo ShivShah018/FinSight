@@ -56,7 +56,7 @@ export const Login: React.FC = () => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* Email Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
+            <label htmlFor="login-email" className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
               Email Address
             </label>
             <div className="relative">
@@ -64,8 +64,10 @@ export const Login: React.FC = () => {
                 <Mail className="w-5 h-5" />
               </span>
               <input
+                id="login-email"
                 type="email"
                 placeholder="you@example.com"
+                autoComplete="email"
                 {...register('email')}
                 className={`w-full bg-slate-950 border text-slate-200 pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all ${
                   errors.email ? 'border-rose-500/60' : 'border-slate-800 hover:border-slate-700'
@@ -81,16 +83,23 @@ export const Login: React.FC = () => {
 
           {/* Password Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wide">
-              Password
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="login-password" className="block text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                Password
+              </label>
+              <Link to="/forgot-password" className="text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors">
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                 <KeyRound className="w-5 h-5" />
               </span>
               <input
+                id="login-password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 {...register('password')}
                 className={`w-full bg-slate-950 border text-slate-200 pl-11 pr-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all ${
                   errors.password ? 'border-rose-500/60' : 'border-slate-800 hover:border-slate-700'

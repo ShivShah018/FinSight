@@ -75,6 +75,7 @@ export const Sidebar: React.FC = () => {
         </div>
         <button
           onClick={logout}
+          aria-label="Logout"
           className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all duration-200"
         >
           <LogOut className="w-5 h-5" />

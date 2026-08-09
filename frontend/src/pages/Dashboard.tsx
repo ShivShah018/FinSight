@@ -189,6 +189,10 @@ export const Dashboard: React.FC = () => {
           {/* Month/Year selector */}
           <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1 text-sm text-slate-300">
             <select 
+              id="dashboard-month-select"
+              name="month"
+              autoComplete="off"
+              aria-label="Select month"
               value={selectedMonth} 
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
               className="bg-transparent border-0 py-1.5 px-3 focus:outline-none cursor-pointer"
@@ -205,6 +209,10 @@ export const Dashboard: React.FC = () => {
             </select>
             <div className="w-px h-5 bg-slate-800"></div>
             <select 
+              id="dashboard-year-select"
+              name="year"
+              autoComplete="off"
+              aria-label="Select year"
               value={selectedYear} 
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="bg-transparent border-0 py-1.5 px-3 focus:outline-none cursor-pointer"
@@ -458,6 +466,7 @@ export const Dashboard: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Create New Transaction</h3>
               <button 
                 onClick={() => setShowAddModal(false)}
+                aria-label="Cancel transaction creation"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -489,10 +498,13 @@ export const Dashboard: React.FC = () => {
 
               {/* Amount input */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Amount</label>
+                <label htmlFor="dash-tx-amount" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Amount</label>
                 <input
+                  id="dash-tx-amount"
+                  name="amount"
                   type="text"
                   placeholder="e.g. 500"
+                  autoComplete="off"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -501,10 +513,13 @@ export const Dashboard: React.FC = () => {
 
               {/* Description input */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Description</label>
+                <label htmlFor="dash-tx-description" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Description</label>
                 <input
+                  id="dash-tx-description"
+                  name="description"
                   type="text"
                   placeholder="e.g. Uber ride / Salary"
+                  autoComplete="off"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onBlur={handleDescriptionBlur}
@@ -514,8 +529,11 @@ export const Dashboard: React.FC = () => {
 
               {/* Category selector */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Category</label>
+                <label htmlFor="dash-tx-category" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Category</label>
                 <select
+                  id="dash-tx-category"
+                  name="category_id"
+                  autoComplete="off"
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all cursor-pointer"
@@ -531,13 +549,16 @@ export const Dashboard: React.FC = () => {
 
               {/* Transaction Date */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Transaction Date</label>
+                <label htmlFor="dash-tx-date" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Transaction Date</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                     <Calendar className="w-5 h-5" />
                   </span>
                   <input
+                    id="dash-tx-date"
+                    name="transaction_date"
                     type="date"
+                    autoComplete="off"
                     max={new Date().toISOString().split("T")[0]}
                     value={transactionDate}
                     onChange={(e) => setTransactionDate(e.target.value)}

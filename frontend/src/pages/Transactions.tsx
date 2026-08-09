@@ -179,8 +179,12 @@ export const Transactions: React.FC = () => {
             <Search className="w-4 h-4" />
           </span>
           <input
+            id="transactions-search"
+            name="search"
             type="text"
             placeholder="Search transactions..."
+            autoComplete="off"
+            aria-label="Search transactions"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 pl-10 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -207,6 +211,10 @@ export const Transactions: React.FC = () => {
         {/* Date Filters and Undo Options */}
         <div className="flex items-center gap-3">
           <select
+            id="transactions-month-filter"
+            name="month"
+            autoComplete="off"
+            aria-label="Filter transactions by month"
             value={selectedMonth || ''}
             onChange={(e) => setSelectedMonth(e.target.value ? Number(e.target.value) : undefined)}
             className="bg-slate-950 border border-slate-800 text-slate-300 text-xs px-3 py-2 rounded-xl focus:outline-none cursor-pointer"
@@ -224,6 +232,10 @@ export const Transactions: React.FC = () => {
           </select>
 
           <select
+            id="transactions-year-filter"
+            name="year"
+            autoComplete="off"
+            aria-label="Filter transactions by year"
             value={selectedYear || ''}
             onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
             className="bg-slate-950 border border-slate-800 text-slate-300 text-xs px-3 py-2 rounded-xl focus:outline-none cursor-pointer"
@@ -241,6 +253,7 @@ export const Transactions: React.FC = () => {
 
           <button
             onClick={() => setShowSoftDeleted(!showSoftDeleted)}
+            aria-label="Toggle recently deleted transactions"
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
               showSoftDeleted 
                 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
@@ -261,6 +274,7 @@ export const Transactions: React.FC = () => {
             <h3 className="text-sm font-semibold uppercase tracking-wide text-rose-400">Recently Deleted (Undo actions)</h3>
             <button 
               onClick={() => setShowSoftDeleted(false)}
+              aria-label="Close recently deleted transactions list"
               className="text-slate-500 hover:text-slate-300"
             >
               <X className="w-4 h-4" />
@@ -280,6 +294,7 @@ export const Transactions: React.FC = () => {
                     <span className="text-sm text-slate-400 font-semibold">{fmt(tx.amount)}</span>
                     <button
                       onClick={() => restoreMutation.mutate(tx.id)}
+                      aria-label="Restore transaction"
                       className="p-1.5 hover:bg-emerald-500/10 text-emerald-400 rounded-lg transition-all cursor-pointer"
                       title="Restore"
                     >
@@ -350,6 +365,7 @@ export const Transactions: React.FC = () => {
                               setEditCategoryId(tx.category_id?.toString() || '');
                               setEditDate(tx.transaction_date);
                             }}
+                            aria-label="Edit transaction"
                             className="p-2 hover:bg-purple-500/10 text-purple-400 rounded-lg transition-all cursor-pointer"
                             title="Edit"
                           >
@@ -357,6 +373,7 @@ export const Transactions: React.FC = () => {
                           </button>
                           <button
                             onClick={() => deleteMutation.mutate(tx.id)}
+                            aria-label="Delete transaction"
                             className="p-2 hover:bg-rose-500/10 text-rose-400 rounded-lg transition-all cursor-pointer"
                             title="Delete"
                           >
@@ -381,6 +398,7 @@ export const Transactions: React.FC = () => {
               <h3 className="text-lg font-bold text-white">Edit Transaction</h3>
               <button 
                 onClick={() => setEditingTx(null)}
+                aria-label="Cancel editing transaction"
                 className="text-slate-500 hover:text-slate-300 text-sm cursor-pointer"
               >
                 Cancel
@@ -430,10 +448,13 @@ export const Transactions: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Amount</label>
+                <label htmlFor="edit-tx-amount" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Amount</label>
                 <input
+                  id="edit-tx-amount"
+                  name="amount"
                   type="text"
                   placeholder="e.g. 500"
+                  autoComplete="off"
                   value={editAmount}
                   onChange={(e) => setEditAmount(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -441,10 +462,13 @@ export const Transactions: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Description</label>
+                <label htmlFor="edit-tx-description" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Description</label>
                 <input
+                  id="edit-tx-description"
+                  name="description"
                   type="text"
                   placeholder="e.g. Uber ride / Salary"
+                  autoComplete="off"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
@@ -452,8 +476,11 @@ export const Transactions: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Category</label>
+                <label htmlFor="edit-tx-category" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Category</label>
                 <select
+                  id="edit-tx-category"
+                  name="category_id"
+                  autoComplete="off"
                   value={editCategoryId}
                   onChange={(e) => setEditCategoryId(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all cursor-pointer"
@@ -468,13 +495,16 @@ export const Transactions: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Transaction Date</label>
+                <label htmlFor="edit-tx-date" className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Transaction Date</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                     <Calendar className="w-5 h-5" />
                   </span>
                   <input
+                    id="edit-tx-date"
+                    name="transaction_date"
                     type="date"
+                    autoComplete="off"
                     max={new Date().toISOString().split("T")[0]}
                     value={editDate}
                     onChange={(e) => setEditDate(e.target.value)}

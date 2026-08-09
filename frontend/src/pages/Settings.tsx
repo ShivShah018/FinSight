@@ -41,9 +41,12 @@ export const Settings: React.FC = () => {
           <form onSubmit={handleSaveSettings} className="space-y-6">
             {/* Full Name */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 tracking-wide">Full Name</label>
+              <label htmlFor="settings-name" className="block text-xs font-semibold text-slate-400 uppercase mb-2 tracking-wide">Full Name</label>
               <input
+                id="settings-name"
+                name="name"
                 type="text"
+                autoComplete="name"
                 value={user?.name || ''}
                 disabled
                 className="w-full bg-slate-950 border border-slate-800 text-slate-400 px-4 py-2.5 rounded-xl text-sm focus:outline-none opacity-60 cursor-not-allowed"
@@ -52,9 +55,12 @@ export const Settings: React.FC = () => {
 
             {/* Email Address */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 tracking-wide">Email Address</label>
+              <label htmlFor="settings-email" className="block text-xs font-semibold text-slate-400 uppercase mb-2 tracking-wide">Email Address</label>
               <input
+                id="settings-email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 value={user?.email || ''}
                 disabled
                 className="w-full bg-slate-950 border border-slate-800 text-slate-400 px-4 py-2.5 rounded-xl text-sm focus:outline-none opacity-60 cursor-not-allowed"
@@ -63,12 +69,15 @@ export const Settings: React.FC = () => {
 
             {/* Currency configuration */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase mb-2 tracking-wide">Preferred Currency</label>
+              <label htmlFor="settings-currency" className="block text-xs font-semibold text-slate-300 uppercase mb-2 tracking-wide">Preferred Currency</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
                   <Globe className="w-5 h-5" />
                 </span>
                 <select
+                  id="settings-currency"
+                  name="currency"
+                  autoComplete="off"
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-300 pl-11 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all cursor-pointer"
