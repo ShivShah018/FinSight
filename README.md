@@ -1,198 +1,161 @@
 # FinSight
 
-A full-stack personal finance manager with AI-powered spending insights. Track transactions, set budgets, manage savings goals, visualize spending patterns, and generate PDF statements.
+[![Deployment](https://img.shields.io/badge/Deployment-Live-brightgreen)](https://fin-sight-beta-dusky.vercel.app)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![React](https://img.shields.io/badge/Frontend-React_19_%7C_TypeScript-61DAFB?logo=react)](https://react.dev/)
+[![Express](https://img.shields.io/badge/Backend-Node.js_%7C_Express-000000?logo=nodedotjs)](https://expressjs.com/)
+[![MySQL](https://img.shields.io/badge/Database-MySQL_8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 
-## Features
+**FinSight** is a full-stack personal finance management platform built with React 19, TypeScript, Express.js, and MySQL. It features interactive data analytics, automated budgeting, savings goal tracking, and ML-powered spending forecasts.
 
-- **Dashboard** — Income/expense summary, savings rate, daily average, top spending categories
-- **Transaction Ledger** — Add, edit, search, filter by month/year, soft-delete, restore
-- **Budgeting** — Monthly spending limits per category with live utilization bars
-- **Savings Goals** — Create, fund, track progress, complete, or cancel
-- **Analytics** — 12-month income/expense trends, behavioral spending group profiles
-- **Spending Forecast** — ML-driven prediction of next month's spending via Linear Regression
-- **Multi-Currency** — INR, USD, NPR with live exchange rates and hourly cache
-- **PDF Statements** — A4 account statements with transaction ledger and goals summary
-- **Dark Theme** — Full dark-mode UI
+🌐 **Live Application:** [https://fin-sight-beta-dusky.vercel.app](https://fin-sight-beta-dusky.vercel.app)  
+⚙️ **Backend API:** [https://finsight-backend-zsz3.onrender.com](https://finsight-backend-zsz3.onrender.com)
+
+---
+
+## Key Features
+
+- 🔐 **Authentication & Security** — JWT-based authentication, bcrypt password hashing, protected routes, and email-based password resets powered by the Resend API.
+- 💳 **Transaction Management** — Full CRUD ledger supporting income and expense tracking, category selection, multi-keyword search, date/month filtering, and soft-delete/restore capabilities.
+- 📊 **Budget Limits & Goal Tracking** — Category-level monthly spending caps with live utilization progress bars, plus interactive savings goals with step-deposit funding.
+- 📈 **Financial Dashboard & Analytics** — 12-month cashflow visualization, net savings rates, category expense distributions, and downloadable PDF account statements.
+- 🤖 **AI/ML Spending Insights** — Machine learning spending predictions (Linear Regression time-series forecasting), behavioral spending category suggestions, and pattern clustering.
+- 📱 **Responsive Dark-Mode Interface** — Sleek glassmorphism UI built with React 19, TypeScript, Tailwind CSS, Recharts, and TanStack Query, accessible across Desktop, Tablet, and Mobile viewports.
+
+---
 
 ## Tech Stack
 
-| Layer | Technology |
+| Layer | Technologies & Libraries |
 | :--- | :--- |
-| Frontend | React 19, TypeScript, Vite, Recharts, TanStack Query, Tailwind CSS |
-| Backend | Node.js, Express.js |
-| Database | MySQL 8.0 (prepared statements via mysql2) |
-| Auth | JWT (jsonwebtoken) + bcrypt |
-| ML | Python 3, scikit-learn (Linear Regression, K-Means) |
-| PDF | pdfkit |
+| **Frontend** | React 19, TypeScript, Vite, TanStack Query v5, Recharts, Lucide Icons, React Hook Form, Zod, Tailwind CSS |
+| **Backend** | Node.js, Express.js, JWT (`jsonwebtoken`), `bcrypt`, `mysql2` (Prepared Statements), `pdfkit` |
+| **Database** | MySQL 8.0 (6 Relational Tables with Foreign Keys, Cascading Deletes, Unique Constraints, and Composite Indexes) |
+| **Email Service** | Resend API (Transactional emails for password reset verification) |
+| **Machine Learning** | Python 3, `scikit-learn` (Linear Regression, K-Means Clustering, TimeSeriesSplit) |
+| **Deployment** | Vercel (Frontend SPA with URL rewrites), Render (Express.js API), MySQL Cloud Database |
 
-## Architecture
+---
+
+## Architecture & System Design
+
+FinSight uses a decoupled client-server architecture. The React single-page application communicates with the Node.js/Express backend via a RESTful JSON API. Heavy machine-learning computations are offloaded to an isolated Python service spawned on demand.
 
 ```mermaid
 flowchart LR
-    A["React SPA (5173)"] -->|HTTP JSON| B["Express Server (8000)"]
-    B --> C["MySQL"]
-    B --> D["Python ML"]
-    D -->|JSON| B
+    UI["React 19 + TS SPA (Vercel)"]
+    API["Express REST API (Render)"]
+    AUTH["JWT Authentication"]
+    DB[("MySQL 8.0 Database")]
+    ML["Python ML Subprocess"]
+    EMAIL["Resend Email API"]
+
+    UI -->|HTTPS / JSON| API
+    API --> AUTH
+    API --> DB
+    API --> ML
+    API --> EMAIL
 ```
 
 ### Authentication Flow
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant E as Express
-    participant DB as MySQL
+    participant Client as React SPA
+    participant Server as Express API
+    participant DB as MySQL DB
 
-    C->>E: POST /auth/register
-    Note over C,E: full_name, email, password
-    E->>DB: INSERT INTO users
-    DB-->>E: user_id
-    E-->>C: access_token + user data
+    Client->>Server: POST /auth/login (email, password)
+    Server->>DB: SELECT * FROM users WHERE email = ?
+    DB-->>Server: User Record + Password Hash
+    Server->>Server: Verify password with bcrypt
+    Server-->>Client: JWT Access Token + User Profile
 
-    C->>E: POST /auth/login
-    Note over C,E: email, password
-    E->>DB: SELECT user
-    DB-->>E: user + hash
-    E->>E: Verify password
-    E-->>C: access_token + user data
-
-    C->>E: GET /transactions
-    Note over C,E: Bearer token
-    E->>E: Verify JWT
-    E->>DB: SELECT transactions
-    DB-->>E: transactions
-    E-->>C: JSON array
+    Client->>Server: GET /transactions (Headers: Bearer <token>)
+    Server->>Server: Verify JWT Token Signature
+    Server->>DB: SELECT * FROM transactions WHERE user_id = ?
+    DB-->>Server: Transaction Records
+    Server-->>Client: JSON Response
 ```
 
-### ML Flow
+---
 
-```mermaid
-flowchart LR
-    subgraph Express
-        IC[Controller]
-        MLH[Helper]
-    end
-    subgraph Python
-        PY["ml_service.py"]
-    end
-    IC --> MLH
-    MLH -->|spawn| PY
-    PY -->|result| MLH
-    MLH --> IC
-```
-
-## Folder Structure
+## Repository Structure
 
 ```text
 FinSight/
-├── frontend/
+├── frontend/             # React 19 + TypeScript SPA
 │   ├── src/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── contexts/
-│   │   ├── hooks/
-│   │   ├── pages/
-│   │   ├── types/
-│   │   └── utils/
+│   │   ├── api/          # Axios API service instances
+│   │   ├── components/   # Modular UI components & modals
+│   │   ├── contexts/     # Auth & global state providers
+│   │   ├── hooks/        # Custom React hooks
+│   │   ├── pages/        # Dashboard, Transactions, Goals, Budgets, Analytics, Insights, Settings
+│   │   ├── types/        # TypeScript interfaces & types
+│   │   └── utils/        # Formatting & currency helpers
 │   ├── package.json
-│   └── .env
+│   └── vite.config.ts
 │
-├── server/
-│   ├── controllers/
-│   ├── routes/
-│   ├── utils/
-│   ├── ml/
-│   ├── database/
-│   ├── db.js
-│   ├── app.js
-│   ├── server.js
-│   ├── package.json
-│   └── .env
+├── server/               # Express.js REST API Backend
+│   ├── controllers/      # Route controllers (Auth, Tx, Goals, Budgets, Analytics, ML)
+│   ├── routes/           # Express router endpoints
+│   ├── database/         # MySQL database initialization schemas
+│   ├── ml/               # Python ML scripts & evaluation pipeline
+│   ├── utils/            # JWT middleware & email service
+│   ├── db.js             # MySQL connection pool
+│   ├── app.js            # Express app configuration & middleware
+│   ├── server.js         # HTTP server entry point
+│   └── package.json
 │
-├── README.md
-└── test_e2e.js
+├── vercel.json           # Vercel SPA routing rules
+└── README.md
 ```
+
+---
 
 ## API Overview
 
-All authenticated endpoints require `Authorization: Bearer <token>`.
+All protected endpoints require an `Authorization: Bearer <token>` header.
 
-### Authentication
+### Authentication & Account
+- `POST /auth/register` — Register a new user account
+- `POST /auth/login` — Authenticate credentials and issue JWT
+- `GET /auth/me` — Retrieve current authenticated user profile
+- `POST /auth/forgot-password` — Request password reset email
+- `POST /auth/reset-password` — Reset password using token
 
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| POST | `/auth/register` | No |
-| POST | `/auth/login` | No |
-| GET | `/auth/me` | Yes |
+### Transactions Ledger
+- `GET /transactions` — Fetch user transactions (supports `month`, `year`, `limit`)
+- `POST /transactions` — Create new transaction record
+- `GET /transactions/:tx_id` — Fetch single transaction details
+- `PUT /transactions/:tx_id` — Update existing transaction
+- `DELETE /transactions/:tx_id` — Soft-delete transaction (`deleted_at = NOW()`)
+- `POST /transactions/:tx_id/restore` — Restore soft-deleted transaction
+- `GET /transactions/deleted/recent` — Fetch recently deleted transactions
 
-### Transactions
+### Savings Goals & Budgets
+- `GET /goals` | `POST /goals` | `PUT /goals/:goal_id` | `DELETE /goals/:goal_id` — Goal CRUD
+- `POST /goals/:goal_id/fund` — Deposit funds into savings goal
+- `POST /goals/:goal_id/complete` — Mark savings goal completed
+- `POST /goals/:goal_id/cancel` — Mark savings goal cancelled
+- `GET /budgets` | `POST /budgets` | `PUT /budgets/:budget_id` | `DELETE /budgets/:budget_id` — Budget cap CRUD
+- `GET /budgets/utilization` — Get category spending vs monthly limits
 
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/transactions` | Yes |
-| POST | `/transactions` | Yes |
-| GET | `/transactions/:id` | Yes |
-| PUT | `/transactions/:id` | Yes |
-| DELETE | `/transactions/:id` | Yes |
-| POST | `/transactions/:id/restore` | Yes |
-| GET | `/transactions/deleted/recent` | Yes |
-
-### Goals
-
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/goals` | Yes |
-| POST | `/goals` | Yes |
-| PUT | `/goals/:id` | Yes |
-| POST | `/goals/:id/fund` | Yes |
-| POST | `/goals/:id/complete` | Yes |
-| POST | `/goals/:id/cancel` | Yes |
-| DELETE | `/goals/:id` | Yes |
-
-### Budgets
-
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/budgets` | Yes |
-| POST | `/budgets` | Yes |
-| PUT | `/budgets/:id` | Yes |
-| DELETE | `/budgets/:id` | Yes |
-| GET | `/budgets/utilization` | Yes |
-
-### Dashboard & Analytics
-
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/dashboard` | Yes |
-| GET | `/analytics/trends` | Yes |
-
-### Categories
-
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/categories` | Yes |
+### Dashboard, Analytics & System
+- `GET /dashboard` — Financial overview metrics and monthly summary
+- `GET /analytics/trends` — 12-month historical cashflow aggregations
+- `GET /categories` — Fetch available spending and income categories
+- `POST /report/generate` — Generate downloadable A4 PDF financial statement
+- `GET /currency/rates` — Live multi-currency conversion rates
+- `GET /health` — Application health & Resend service configuration status
 
 ### ML Insights
+- `GET /insights/predict` — Next-month spending prediction (Linear Regression)
+- `GET /insights/suggest-category` — Automated expense category classification
+- `GET /insights/cluster` — Behavioral spending cluster analysis
+- `GET /insights/all` — Aggregate analytical data feed for ML pipeline
 
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/insights/predict` | Yes |
-| GET | `/insights/suggest-category` | Yes |
-| GET | `/insights/cluster` | Yes |
-| GET | `/insights/all` | Yes |
-
-### Reports
-
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| POST | `/report/generate` | Yes |
-
-### Currency & System
-
-| Method | Endpoint | Auth |
-|--------|----------|------|
-| GET | `/currency/rates` | No |
-| GET | `/health` | No |
+---
 
 ## Database Design
 
@@ -200,10 +163,10 @@ All authenticated endpoints require `Authorization: Bearer <token>`.
 erDiagram
     users {
         int id PK
-        varchar name
-        varchar email
+        varchar full_name
+        varchar email UK
         varchar password_hash
-        varchar currency
+        char currency
     }
     categories {
         int id PK
@@ -211,7 +174,6 @@ erDiagram
         varchar name
         enum type
         varchar icon
-        varchar color
     }
     transactions {
         int id PK
@@ -219,9 +181,8 @@ erDiagram
         int category_id FK
         decimal amount
         enum type
-        text description
         date transaction_date
-        datetime deleted_at
+        timestamp deleted_at
     }
     savings_goals {
         int id PK
@@ -230,281 +191,109 @@ erDiagram
         decimal target_amount
         decimal current_amount
         date deadline
-        enum status
     }
     budget_limits {
         int id PK
         int user_id FK
         int category_id FK
         decimal monthly_limit
-        datetime created_at
-        datetime updated_at
     }
-    users ||--o{ categories : "has"
-    users ||--o{ transactions : "has"
-    users ||--o{ savings_goals : "has"
-    users ||--o{ budget_limits : "has"
-    categories ||--o{ transactions : "categorizes"
-    categories ||--o{ budget_limits : "limits"
+    password_reset_tokens {
+        int id PK
+        int user_id FK
+        varchar token_hash
+        datetime expires_at
+        datetime used_at
+    }
+
+    users ||--o{ categories : "owns"
+    users ||--o{ transactions : "records"
+    users ||--o{ savings_goals : "manages"
+    users ||--o{ budget_limits : "configures"
+    users ||--o{ password_reset_tokens : "receives"
+    categories ||--o{ transactions : "classifies"
+    categories ||--o{ budget_limits : "restricts"
 ```
 
-### Tables
+---
 
-- **users** — Account credentials, name, email, bcrypt password hash, currency preference
-- **categories** — Per-user income/expense categories with emoji icon and hex color. Seeded on registration.
-- **transactions** — Core ledger. Amount, type, category, date. Soft-delete via `deleted_at`. Indexed on `(user_id, transaction_date)`.
-- **savings_goals** — Target amount, progress, deadline, status (active/completed/cancelled).
-- **budget_limits** — Per-category monthly limit with upsert behavior.
+## Application Gallery
 
-All child tables reference `users(id)` via foreign keys with `ON DELETE CASCADE`.
-
-## Machine Learning
-
-The Python ML service runs as an isolated subprocess spawned by Express.js. Communication uses JSON over stdin/stdout.
-
-1. Express sends `{ mode: "predict" | "cluster", transactions }` to Python's stdin
-2. Python processes with scikit-learn and writes JSON result to stdout
-3. Express reads stdout and returns the result to the frontend
-
-This keeps Node.js free of Python dependencies while leveraging scikit-learn. The Python environment is at `backend/.venv/`.
-
-## ML Evaluation
-
-The evaluation pipeline in `server/ml/improve_portfolio.py` measures ML model performance against the seeded dataset (319 transactions, 755 days). It compares 7 regression models with proper time-series validation.
-
-### Methodology
-
-- **Data**: 264 expense transactions aggregated to 747 daily training samples
-- **Features**: 29 engineered features (lag, rolling window, EMA, calendar, category one-hot)
-- **Validation**: TimeSeriesSplit (k=5) + holdout (last 20%) — zero data leakage
-- **Outlier treatment**: IQR winsorization caps extreme daily spending values
-- **Scaling**: RobustScaler (median/IQR, unaffected by outliers)
-
-### Model Comparison
-
-| Model | CV R² | MAE | MAPE |
-|---|---|---|---|
-| LinearRegression | −1.44 | 140.79 | 78.7% |
-| Ridge | −0.60 | 126.59 | 73.8% |
-| Lasso | −0.59 | 129.70 | 74.0% |
-| ElasticNet | −0.59 | 130.09 | 75.3% |
-| DecisionTree | +0.29 | 71.27 | 43.1% |
-| **RandomForest** | **+0.53** | **75.82** | **34.5%** |
-| GradientBoosting | +0.46 | 77.52 | 36.5% |
-
-**Selected**: RandomForest — holdout R² = 0.548, MAE = Rs.71.39, MAPE = 36.6%, inference = 11.7ms.
-
-### K-Means Clustering
-
-- 9 engineered features (log-amount, amount percentile, category density, calendar)
-- Optimal K = 10 (by silhouette: 0.304, Davies-Bouldin: 1.27)
-- PCA: 49.4% variance in 2D projection
-
-### Budget Recommendation
-
-Historical percentile-based model (Mean + 1 Std): 78.1% average coverage across 9 spending categories.
-
-### How to Rerun
-
-```bash
-# 1. Export dataset from the running backend
-#    (requires seeded database with user_id=1)
-curl -s -H "Authorization: Bearer <token>" \
-  http://localhost:8000/insights/all > server/ml/all_data.json
-
-# 2. Run the evaluation
-python server/ml/improve_portfolio.py server/ml/all_data.json
-
-# 3. Full report at docs/ML_EVALUATION_REPORT.md
-```
-
-## Screenshots
-
-| Login | Dashboard |
+| Dashboard Overview | Transaction Ledger |
 |:---:|:---:|
-| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) |
+| ![Dashboard](screenshots/dashboard.png) | ![Transactions](screenshots/transactions.png) |
 
-| Transactions | Budgets |
+| Savings Goals | Budget Limits |
 |:---:|:---:|
-| ![Transactions](screenshots/transactions.png) | ![Budgets](screenshots/budgets.png) |
+| ![Goals](screenshots/goals.png) | ![Budgets](screenshots/budgets.png) |
 
-| Goals | Analytics |
+| Financial Analytics | User Settings |
 |:---:|:---:|
-| ![Goals](screenshots/goals.png) | ![Analytics](screenshots/analytics.png) |
+| ![Analytics](screenshots/analytics.png) | ![Settings](screenshots/settings.png) |
 
-| Settings | |
-|:---:|:---:|
-| ![Settings](screenshots/settings.png) | |
+---
 
-## Installation
+## Local Setup & Installation
 
 ### Prerequisites
+- **Node.js:** v18.0.0 or higher
+- **MySQL:** v8.0 or higher
+- **Python:** v3.10 or higher (Optional for ML service)
 
-- Node.js 18+
-- Python 3.10+
-- MySQL 8.0+
-
-### 1. Clone
-
+### 1. Clone Repository
 ```bash
 git clone https://github.com/ShivShah018/FinSight.git
 cd FinSight
 ```
 
-### 2. Database
-
+### 2. Database Initialization
+Import the schema into your local MySQL server:
 ```bash
-mysql -u root -p < server/database/schema.sql
+mysql -u root -p < server/database/schema_railway.sql
 ```
 
-### 3. Backend
-
+### 3. Server Configuration & Startup
 ```bash
 cd server
 npm install
-cp .env.example .env
-# Edit .env with your database credentials
+```
+Create a `.env` file inside the `server/` directory:
+```env
+FINSIGHT_DB_HOST=localhost
+FINSIGHT_DB_PORT=3306
+FINSIGHT_DB_USER=root
+FINSIGHT_DB_PASSWORD=your_mysql_password
+FINSIGHT_DB_NAME=finsight
+JWT_SECRET_KEY=your_secure_jwt_secret
+API_PORT=8000
+RESEND_API_KEY=re_your_resend_api_key
+```
+Start the backend server:
+```bash
 npm start
 ```
+*Backend server will listen on `http://localhost:8000`.*
 
-Server starts at `http://localhost:8000`.
-
-### 4. Frontend
-
+### 4. Frontend Startup
+Open a new terminal window:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*Frontend application will launch at `http://localhost:5173`.*
 
-App opens at `http://localhost:5173`.
+---
 
-### 5. Python ML (optional)
+## Engineering Highlights & Design Rationale
 
-```bash
-cd backend
-python -m venv .venv
-.venv\Scripts\activate    # Windows
-# source .venv/bin/activate  # Linux/macOS
-pip install -r ../server/ml/requirements.txt
-```
+- **Decoupled SPA / REST Architecture:** Frontend and backend are completely decoupled. The SPA communicates exclusively via JSON HTTP requests, enabling independent deployments on Vercel and Render.
+- **SQL Security & Performance:** All database interactions use prepared statements via `mysql2` to prevent SQL injection. Composite indexes (`idx_user_date`) accelerate range queries across multi-year transaction ledgers.
+- **Soft Delete Pattern:** Deleted transactions maintain audit compliance by populating `deleted_at = NOW()`. Users can instantly undo accidental deletions from the UI.
+- **Decoupled ML Subprocess:** Express spawns an isolated Python process communicating via JSON over stdin/stdout, eliminating heavy native Python dependencies from the Node.js runtime.
 
-## Running Locally
-
-```bash
-# Terminal 1
-cd server && npm start
-
-# Terminal 2
-cd frontend && npm run dev
-```
-
-Open `http://localhost:5173`, register, and start tracking.
-
-### Tests
-
-```bash
-# Ensure server is running, then:
-node test_e2e.js
-```
-
-## Deployment
-
-### Frontend
-
-```bash
-cd frontend
-npm run build
-# Deploy frontend/dist/ to any static server
-```
-
-Set `VITE_API_URL` to your deployed backend URL.
-
-### Backend
-
-```bash
-cd server
-NODE_ENV=production npm start
-```
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `FINSIGHT_DB_HOST` | MySQL host |
-| `FINSIGHT_DB_PORT` | MySQL port (default 3306) |
-| `FINSIGHT_DB_USER` | MySQL user |
-| `FINSIGHT_DB_PASSWORD` | MySQL password |
-| `FINSIGHT_DB_NAME` | Database name |
-| `JWT_SECRET_KEY` | JWT signing secret |
-| `API_PORT` | Server port (default 8000) |
-| `CORS_ORIGINS` | Comma-separated allowed origins |
-| `ML_PYTHON_PATH` | Python executable path (auto-detected) |
-
-### Database
-
-```bash
-mysql -h <host> -u <user> -p <database> < server/database/schema.sql
-```
-
-### Python ML
-
-Ensure the virtual environment is set up and `ML_PYTHON_PATH` is configured on the production server.
-
-## Learning Outcomes
-
-### Full-Stack Architecture
-- Decoupled frontend/backend with HTTP JSON communication
-- RESTful API design with consistent error handling
-
-### Frontend Engineering
-- TypeScript strict mode, React 19 hooks and context
-- TanStack Query for caching and mutations
-- Recharts for interactive data visualization
-- Tailwind CSS responsive design, Vite build tooling
-
-### Backend Engineering
-- Express middleware pipeline (CORS, JWT auth, error handling)
-- Prepared SQL statements for injection-safe database access
-- Connection pooling, PDF generation, subprocess management
-
-### Database Design
-- Normalized 5-table schema with foreign keys and composite indexes
-- Soft-delete pattern with filtered queries
-
-### Machine Learning Integration
-- Python child process from Node.js with JSON protocol
-- Linear Regression for time-series forecasting
-- K-Means for behavioral clustering
-
-### DevOps
-- Git version control, E2E testing, env-based configuration
-
-## Interview Talking Points
-
-### Architecture Decisions
-- **Why not monolithic?** — Frontend is independently deployable; same API could serve a mobile app.
-- **Why Python for ML?** — scikit-learn is the ML standard. Subprocess pattern keeps Node.js decoupled.
-- **Why raw SQL?** — Small schema (5 tables). Prepared statements give full query control without ORM overhead.
-- **Why JWT?** — Stateless auth scales horizontally. 24h expiry balances security and UX.
-
-### Challenges Solved
-- Soft-delete with filtered queries (`WHERE deleted_at IS NULL`)
-- Cross-language ML lifecycle and error propagation
-- Multi-currency with hourly cache and hardcoded fallback
-- Budget utilization via left join with conditional aggregation
-
-### Trade-offs
-- **E2E tests only** — Validates full stack but slower debugging. Jest would help.
-- **JS backend** — Faster initial dev. TypeScript would improve maintainability.
-- **No Docker** — Manual MySQL/Node/Python setup. Docker Compose would simplify.
-
-## Future Improvements
-
-- Unit tests (Jest), Docker + docker-compose, CI/CD via GitHub Actions
-- Server-side pagination, recurring transactions, CSV export
-- Email/in-app notifications, public API
+---
 
 ## License
 
-MIT. See `LICENSE` for details.
+This project is licensed under the [MIT License](LICENSE).
