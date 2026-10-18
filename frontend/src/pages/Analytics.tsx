@@ -16,6 +16,12 @@ import {
 import { Brain, AlertCircle, Sparkles, RefreshCw } from 'lucide-react';
 import { tooltipStyle, tooltipLabelStyle } from '../utils/theme';
 import { FinanceAssistant } from './FinanceAssistant';
+const LOADING_MESSAGES = [
+  'Analyzing your spending patterns…',
+  'Connecting the dots in your finances…',
+  'Uncovering insights from your transactions…',
+  'Almost there — preparing your insights…'
+];
 
 export const Analytics: React.FC = () => {
   const { user } = useAuth();
@@ -24,6 +30,10 @@ export const Analytics: React.FC = () => {
 
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState<string>('');
+
+  // Animated message rotation state for premium loading experience
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+  const [isFading, setIsFading] = useState(false);
 
   // Queries
   const { 
@@ -47,6 +57,24 @@ export const Analytics: React.FC = () => {
     retry: false,
   });
 
+  const isAnyLoading = trendsLoading || clustersLoading;
+
+  // Rotate through catchy insights messages while loading
+  React.useEffect(() => {
+    if (!isAnyLoading) return;
+
+    const interval = setInterval(() => {
+      setIsFading(true);
+      const timer = setTimeout(() => {
+        setLoadingMsgIdx((prev) => (prev + 1) % LOADING_MESSAGES.length);
+        setIsFading(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }, 2800);
+
+    return () => clearInterval(interval);
+  }, [isAnyLoading]);
+
   const allMonths: { month: string; income: number; expense: number; net: number }[] = [];
   const trendMap = new Map((trends || []).map((m: { month: string; income: number; expense: number }) => [m.month, m]));
   for (let i = 11; i >= 0; i--) {
@@ -67,44 +95,121 @@ export const Analytics: React.FC = () => {
     <div className="h-96 w-full flex items-end justify-between gap-2.5 px-4 pb-6 pt-12 border-b border-slate-800/40">
       {[45, 68, 32, 85, 52, 40, 72, 88, 50, 62, 78, 92].map((heightPct, idx) => (
         <div key={idx} className="flex-1 flex flex-col items-center gap-2.5 h-full justify-end">
-          <div 
-            className="w-full bg-slate-800/70 rounded-t-md animate-pulse transition-all duration-300" 
+          <div
+            className="w-full bg-slate-800/70 rounded-t-md animate-pulse transition-all duration-300 motion-reduce:animate-none"
             style={{ height: `${heightPct}%` }}
           />
-          <div className="w-8 h-2.5 bg-slate-800/60 rounded animate-pulse" />
+          <div className="w-8 h-2.5 bg-slate-800/60 rounded animate-pulse motion-reduce:animate-none" />
         </div>
       ))}
     </div>
   );
 
-  // Polished Skeleton Placeholders for Spending Behavior Clusters (3 cards matching exact dimensions)
-  const renderClustersSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[0, 1, 2].map((idx) => (
-        <div 
-          key={idx} 
-          className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between shadow-xl"
-        >
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <div className="h-5 w-20 bg-slate-800/80 rounded-lg animate-pulse" />
-              <div className="h-4 w-16 bg-slate-800/50 rounded animate-pulse" />
-            </div>
-            <div className="h-6 w-36 bg-slate-800/90 rounded mb-2 animate-pulse" />
-            <div className="h-3 w-48 bg-slate-800/40 rounded mb-4 animate-pulse" />
-          </div>
-          <div className="space-y-3 pt-4 border-t border-slate-800/60">
-            <div className="flex justify-between items-center">
-              <div className="h-3 w-16 bg-slate-800/50 rounded animate-pulse" />
-              <div className="h-3 w-20 bg-slate-800/80 rounded animate-pulse" />
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="h-3 w-24 bg-slate-800/50 rounded animate-pulse" />
-              <div className="h-3 w-16 bg-slate-800/80 rounded animate-pulse" />
-            </div>
+  // Premium Centered Animated Loading Experience with Glowing Orb & Financial Theme
+  const renderCrunchingNumbersVisual = () => (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-slate-950/70 backdrop-blur-[3px] rounded-xl z-10 transition-all duration-500"
+      role="status"
+      aria-live="polite"
+    >
+      {/* Glowing Purple / Indigo Gradient Financial Visual */}
+      <div className="relative mb-5 flex items-center justify-center">
+        {/* Ambient Blur Glow */}
+        <div className="absolute -inset-3 bg-gradient-to-r from-purple-600/35 via-indigo-500/35 to-cyan-500/35 rounded-full blur-xl animate-pulse motion-reduce:animate-none" />
+
+        {/* Subtle Expanding Radar Ring */}
+        <div className="absolute -inset-2 rounded-2xl border border-purple-500/25 animate-ping opacity-25 motion-reduce:animate-none" />
+
+        {/* Floating Ambient Particles */}
+        <span className="absolute -top-1.5 -right-2 w-1.5 h-1.5 rounded-full bg-cyan-300/80 animate-ping opacity-60 motion-reduce:hidden" />
+        <span className="absolute -bottom-1 -left-2 w-2 h-2 rounded-full bg-purple-400/70 animate-pulse opacity-75 motion-reduce:hidden" />
+        <span className="absolute top-1/2 -right-3.5 w-1 h-1 rounded-full bg-indigo-300/80 animate-bounce [animation-delay:-0.5s] motion-reduce:hidden" />
+
+        {/* Central Orb Container */}
+        <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-400 p-[2px] shadow-xl shadow-purple-600/30 flex items-center justify-center">
+          <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center gap-1.5 px-3">
+            {/* Animated Pulsing Financial Chart Bars */}
+            <div className="w-1.5 h-4 bg-emerald-400 rounded-full animate-pulse [animation-duration:1s] motion-reduce:animate-none" />
+            <div className="w-1.5 h-7 bg-purple-400 rounded-full animate-pulse [animation-duration:1.2s] [animation-delay:0.2s] motion-reduce:animate-none" />
+            <div className="w-1.5 h-5 bg-indigo-400 rounded-full animate-pulse [animation-duration:0.9s] [animation-delay:0.4s] motion-reduce:animate-none" />
+            <div className="w-1.5 h-8 bg-cyan-400 rounded-full animate-pulse [animation-duration:1.1s] [animation-delay:0.1s] motion-reduce:animate-none" />
           </div>
         </div>
-      ))}
+      </div>
+
+      {/* Main Catchy Heading with Animated Dots */}
+      <div className="flex items-center gap-1.5 text-slate-100 font-bold text-base sm:text-lg tracking-tight mb-2">
+        <span>Crunching your numbers</span>
+        <span className="inline-flex items-center gap-1 ml-0.5" aria-hidden="true">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s] motion-reduce:animate-none" />
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.15s] motion-reduce:animate-none" />
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce motion-reduce:animate-none" />
+        </span>
+      </div>
+
+      {/* Rotating Subtitle with Smooth Fade Transition */}
+      <div className="h-6 flex items-center justify-center">
+        <p
+          className={`text-xs sm:text-sm text-purple-300 font-medium transition-all duration-300 ${
+            isFading ? 'opacity-0 transform -translate-y-1' : 'opacity-100 transform translate-y-0'
+          } motion-reduce:transition-none`}
+        >
+          {LOADING_MESSAGES[loadingMsgIdx]}
+        </p>
+      </div>
+
+      {/* Subtle Financial Progress Accent */}
+      <div className="w-36 h-1 bg-slate-800/80 rounded-full overflow-hidden mt-4">
+        <div className="w-full h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-400 animate-pulse motion-reduce:animate-none" />
+      </div>
+    </div>
+  );
+
+  // Polished Skeleton Placeholders for Spending Behavior Clusters (3 cards matching exact dimensions)
+  const renderClustersSkeleton = () => (
+    <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[0, 1, 2].map((idx) => (
+          <div
+            key={idx}
+            className="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between shadow-xl"
+          >
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                <div className="h-5 w-20 bg-slate-800/80 rounded-lg animate-pulse motion-reduce:animate-none" />
+                <div className="h-4 w-16 bg-slate-800/50 rounded animate-pulse motion-reduce:animate-none" />
+              </div>
+              <div className="h-6 w-36 bg-slate-800/90 rounded mb-2 animate-pulse motion-reduce:animate-none" />
+              <div className="h-3 w-48 bg-slate-800/40 rounded mb-4 animate-pulse motion-reduce:animate-none" />
+            </div>
+            <div className="space-y-3 pt-4 border-t border-slate-800/60">
+              <div className="flex justify-between items-center">
+                <div className="h-3 w-16 bg-slate-800/50 rounded animate-pulse motion-reduce:animate-none" />
+                <div className="h-3 w-20 bg-slate-800/80 rounded animate-pulse motion-reduce:animate-none" />
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="h-3 w-24 bg-slate-800/50 rounded animate-pulse motion-reduce:animate-none" />
+                <div className="h-3 w-16 bg-slate-800/80 rounded animate-pulse motion-reduce:animate-none" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* If cashflow has loaded but clusters are still calculating, show localized subtle status */}
+      {!trendsLoading && clustersLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/60 backdrop-blur-[2px] rounded-2xl">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-900/90 border border-purple-500/30 shadow-xl shadow-purple-900/20 text-xs font-semibold text-purple-300">
+            <Brain className="w-4 h-4 text-purple-400 animate-pulse motion-reduce:animate-none" />
+            <span>Categorizing spending clusters</span>
+            <span className="inline-flex gap-1" aria-hidden="true">
+              <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1 h-1 rounded-full bg-cyan-400 animate-bounce" />
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -148,9 +253,12 @@ export const Analytics: React.FC = () => {
           )}
         </div>
 
-        <div className="h-96 w-full">
+        <div className="h-96 w-full relative">
           {trendsLoading ? (
-            renderCashflowSkeleton()
+            <div className="relative h-full w-full">
+              {renderCashflowSkeleton()}
+              {renderCrunchingNumbersVisual()}
+            </div>
           ) : isTrendsError ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-slate-950/40 rounded-xl border border-slate-800/60">
               <AlertCircle className="w-8 h-8 text-rose-400 mb-2" />
