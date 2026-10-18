@@ -409,34 +409,71 @@ docker compose down -v
 
 ## CI/CD Pipeline (GitHub Actions)
 
-The repository includes a modern GitHub Actions workflow at [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggered on pull requests and pushes to `main` and `develop`:
+FinSight features a fully automated, gated CI/CD pipeline defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Pull requests execute continuous integration tests only, while merges/pushes to `main` execute CI quality gates followed by sequential deployments to Render and Vercel and post-deployment production health verification:
 
-1. **Frontend Job (`frontend-ci`):**
-   - Node 20 runtime with `npm` dependency caching.
-   - ESLint validation (`npm run lint`).
-   - TypeScript compilation and Vite production build (`npm run build`).
-2. **Backend Job (`backend-ci`):**
-   - MySQL 8.0 service container with health check.
-   - Python 3.11 environment with `numpy` and `scikit-learn` dependencies.
-   - Automatic database schema migration via `server/database/schema_railway.sql`.
-   - Node native test suite execution (`npm test` — 73 tests).
-3. **Security Audit (`security-audit`):**
-   - High-severity dependency vulnerability audit (`npm audit --audit-level=high`).
-4. **Safety & Governance:**
-   - Concurrency control cancels redundant runs on new pushes (`cancel-in-progress: true`).
-   - Least privilege repository permissions (`contents: read`).
-   - Third-party actions pinned to audited versions (`@v4`).
+```
+[Push to main / PR]
+       │
+       ├──► [Job: frontend-ci] (ESLint + TypeScript + Vite production build)
+       ├──► [Job: backend-and-ml-ci] (MySQL 8.0 container + Python 3.11 ML + 77 tests)
+       └──► [Job: security-audit-ci] (Blocking production audit: high/critical thresholds)
+               │
+   (On PR: Stops here — CI checks only)
+   (On main push: Gated release triggers only after all CI checks pass)
+               │
+               ▼
+       [Job: deploy-backend] (Triggers Render deploy hook & polls /health/ready)
+               │
+               ▼
+       [Job: deploy-frontend] (Triggers Vercel deploy hook & polls frontend)
+               │
+               ▼
+       [Job: verify-production-health] (Automated smoke checks: /health, /health/ready, frontend)
+```
+
+### 1. Stage 1: Continuous Integration (CI)
+- **Frontend Quality Gate (`frontend-ci`):** Node.js 20 environment with npm caching, ESLint validation, TypeScript type-checking, and Vite production bundle compilation.
+- **Backend & ML Validation (`backend-and-ml-ci`):**
+  - Spawns disposable `mysql:8.0` service container with automated health probing.
+  - Configures Python 3.11 with pip caching and installs ML dependencies (`numpy`, `scikit-learn`).
+  - Initializes database schema using `server/database/schema_railway.sql`.
+  - Executes all 10 backend test suites (77 automated tests) covering ACID transactions, row-level locking, multi-tenant isolation, LangGraph state machine, and Python ML holdout validation.
+- **Security Audit (`security-audit-ci`):**
+  - Strict, blocking vulnerability audit on production dependencies:
+    - Backend: `npm audit --audit-level=high --omit=dev` (fails CI on high/critical production CVEs).
+    - Frontend: `npm audit --audit-level=high` (fails CI on high/critical CVEs).
+
+### 2. Stage 2: Continuous Deployment & Delivery (CD)
+- **Branch Restriction:** Executes strictly on `push` to `refs/heads/main`. Pull requests never deploy to production.
+- **Render Backend Deploy (`deploy-backend`):** Triggers Render's official Deploy Hook and polls `https://finsight-backend-zsz3.onrender.com/health/ready` until the service reports `ready` and `database: connected`.
+- **Vercel Frontend Deploy (`deploy-frontend`):** Initiates after the backend is confirmed healthy, triggering Vercel's Deploy Hook and polling `https://fin-sight-beta-dusky.vercel.app` for HTTP 200.
+- **Production Smoke Verification (`verify-production-health`):** Validates live production endpoints without mutating user data:
+  - `GET /health`: Verifies service liveness and version info.
+  - `GET /health/ready`: Confirms active cloud MySQL database connectivity.
+  - `GET /`: Confirms frontend SPA availability.
+- **Concurrency & Governance:**
+  - `cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}` (cancels redundant PR runs, but prevents in-flight production releases from aborting).
+  - Least-privilege permissions (`contents: read`). Zero secrets logged or exposed.
 
 ---
 
-## Hosting & Deployment Architecture
+## Hosting & Deployment Configuration
 
-- **Frontend (Vercel):** Single-page application hosted on Vercel with client-side routing via [`vercel.json`](vercel.json). Automatically deploys production branch upon GitHub push.
-- **Backend (Render):** Express API web service hosted on Render with automatic GitHub deployment hooks.
-- **Database (Cloud MySQL):** Managed MySQL 8.0 database instance with connection pooling (`mysql2`).
+### Production URLs
+- **Frontend (Vercel):** [https://fin-sight-beta-dusky.vercel.app](https://fin-sight-beta-dusky.vercel.app)
+- **Backend (Render):** [https://finsight-backend-zsz3.onrender.com](https://finsight-backend-zsz3.onrender.com)
+- **Database (Cloud MySQL):** Managed TiDB Cloud Serverless MySQL instance.
+
+### Required GitHub Repository Secrets
+To enable the gated deployment workflow, configure the following secrets in GitHub Repository **Settings** -> **Secrets and variables** -> **Actions**:
+
+| Secret Name | Source / Provider Configuration | Purpose |
+| :--- | :--- | :--- |
+| `RENDER_DEPLOY_HOOK_URL` | Render Dashboard -> `finsight-backend-zsz3` -> **Settings** -> **Build & Deploy** -> Create **Deploy Hook**. *(Set **Auto-Deploy** to **No**)* | Triggers backend deployment only after CI passes. |
+| `VERCEL_DEPLOY_HOOK_URL` | Vercel Dashboard -> `fin-sight-beta-dusky` -> **Settings** -> **Git** -> Create **Deploy Hook** for branch `main`. | Triggers frontend deployment only after backend is verified. |
 
 > [!IMPORTANT]
-> GitHub Actions handles continuous integration and quality gates. Actual production deployments to Vercel and Render are gated and decouple CI test verification from live deployment execution.
+> To prevent Vercel and Render from deploying broken commits before GitHub Actions CI finishes, set **Auto-Deploy** to **No** in Render service settings. This ensures production releases are strictly gated by GitHub Actions CI verification.
 
 ---
 

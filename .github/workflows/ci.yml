@@ -1,4 +1,4 @@
-name: FinSight CI
+name: FinSight CI/CD
 
 on:
   push:
@@ -8,13 +8,13 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
-  frontend:
+  frontend-ci:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
     defaults:
@@ -40,7 +40,7 @@ jobs:
       - name: Build Production Bundle
         run: npm run build
 
-  backend-and-ml:
+  backend-and-ml-ci:
     name: Backend Tests & ML Validation
     runs-on: ubuntu-latest
     services:
@@ -108,7 +108,7 @@ jobs:
           cd server
           npm test
 
-  security-audit:
+  security-audit-ci:
     name: Dependency Vulnerability Audit
     runs-on: ubuntu-latest
     steps:
@@ -120,12 +120,265 @@ jobs:
         with:
           node-version: 20
 
-      - name: Audit Backend Dependencies
+      - name: Audit Backend Production Dependencies
         run: |
           cd server
-          npm audit --audit-level=high || true
+          npm audit --audit-level=high --omit=dev
 
       - name: Audit Frontend Dependencies
         run: |
           cd frontend
-          npm audit --audit-level=high || true
+          npm audit --audit-level=high
+
+  deploy-backend:
+    name: Deploy Backend (Render)
+    needs: [backend-and-ml-ci, security-audit-ci]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Render Deploy Hook Secret
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_HOOK" ]; then
+            echo "::error::Missing secret RENDER_DEPLOY_HOOK_URL in repository secrets. In Render service settings, set Auto-Deploy to No, create a Deploy Hook, and add RENDER_DEPLOY_HOOK_URL to GitHub repository secrets."
+            exit 1
+          fi
+
+      - name: Trigger Render Backend Deployment
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering Render deployment hook for backend service..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$RENDER_HOOK")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "Render response HTTP code: $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Render deployment hook failed with status $HTTP_CODE: $BODY"
+            exit 1
+          fi
+          echo "Render deployment trigger acknowledged."
+
+      - name: Wait for Backend Deployment Readiness
+        run: |
+          echo "Polling Render backend health and database readiness..."
+          node -e "
+          const https = require('https');
+          const readyUrl = 'https://finsight-backend-zsz3.onrender.com/health/ready';
+          const maxAttempts = 30; // 30 * 15s = 7.5 minutes max
+          const intervalMs = 15000;
+          let attempt = 0;
+
+          function checkReadiness() {
+            attempt++;
+            console.log('Probing ' + readyUrl + ' (Attempt ' + attempt + '/' + maxAttempts + ')...');
+            const req = https.get(readyUrl, (res) => {
+              let body = '';
+              res.on('data', chunk => body += chunk);
+              res.on('end', () => {
+                if (res.statusCode === 200) {
+                  try {
+                    const parsed = JSON.parse(body);
+                    if (parsed.status === 'ready' && parsed.database === 'connected') {
+                      console.log('Render backend is healthy and database is connected!');
+                      process.exit(0);
+                    }
+                    console.log('Backend response status: ' + parsed.status + ', db: ' + parsed.database);
+                  } catch (e) {
+                    console.log('Response parse error, waiting for rollout...');
+                  }
+                } else {
+                  console.log('HTTP ' + res.statusCode + ' received, waiting for deployment rollout...');
+                }
+                retry();
+              });
+            });
+            req.on('error', (err) => {
+              console.log('Network error connecting to backend: ' + err.message);
+              retry();
+            });
+            req.setTimeout(10000, () => {
+              req.destroy();
+              retry();
+            });
+          }
+
+          function retry() {
+            if (attempt >= maxAttempts) {
+              console.error('Render backend failed to reach ready state within the timeout window.');
+              process.exit(1);
+            }
+            setTimeout(checkReadiness, intervalMs);
+          }
+
+          // Initial 15s buffer for Render build to begin
+          setTimeout(checkReadiness, 15000);
+          "
+
+  deploy-frontend:
+    name: Deploy Frontend (Vercel)
+    needs: [frontend-ci, deploy-backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Vercel Deploy Hook Secret
+        env:
+          VERCEL_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_HOOK" ]; then
+            echo "::error::Missing secret VERCEL_DEPLOY_HOOK_URL in repository secrets. In Vercel project settings, set Auto-Deploy to No (or disable automatic branch deployments), create a Deploy Hook for main, and add VERCEL_DEPLOY_HOOK_URL to GitHub repository secrets."
+            exit 1
+          fi
+
+      - name: Trigger Vercel Frontend Deployment
+        env:
+          VERCEL_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering Vercel deployment hook for frontend SPA..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$VERCEL_HOOK")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "Vercel response HTTP code: $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Vercel deployment hook failed with status $HTTP_CODE: $BODY"
+            exit 1
+          fi
+          echo "Vercel deployment trigger acknowledged."
+
+      - name: Wait for Frontend Deployment Availability
+        run: |
+          echo "Polling Vercel frontend availability..."
+          node -e "
+          const https = require('https');
+          const frontUrl = 'https://fin-sight-beta-dusky.vercel.app';
+          const maxAttempts = 20; // 20 * 10s = ~3.3 minutes
+          const intervalMs = 10000;
+          let attempt = 0;
+
+          function checkFrontend() {
+            attempt++;
+            console.log('Probing ' + frontUrl + ' (Attempt ' + attempt + '/' + maxAttempts + ')...');
+            const req = https.get(frontUrl, (res) => {
+              if (res.statusCode === 200) {
+                console.log('Frontend responded with HTTP 200 OK!');
+                process.exit(0);
+              }
+              console.log('HTTP ' + res.statusCode + ' received, waiting for deployment...');
+              retry();
+            });
+            req.on('error', (err) => {
+              console.log('Network error probing frontend: ' + err.message);
+              retry();
+            });
+            req.setTimeout(8000, () => {
+              req.destroy();
+              retry();
+            });
+          }
+
+          function retry() {
+            if (attempt >= maxAttempts) {
+              console.error('Frontend failed to respond with HTTP 200 within timeout window.');
+              process.exit(1);
+            }
+            setTimeout(checkFrontend, intervalMs);
+          }
+
+          setTimeout(checkFrontend, 10000);
+          "
+
+  verify-production-health:
+    name: Verify Production Health (Smoke Tests)
+    needs: [deploy-backend, deploy-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Production Health & Connectivity Verification
+        run: |
+          echo "Running post-deployment production smoke verification..."
+          node -e "
+          const https = require('https');
+
+          function fetch(url) {
+            return new Promise((resolve, reject) => {
+              const req = https.get(url, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => resolve({ statusCode: res.statusCode, body }));
+              });
+              req.on('error', reject);
+              req.setTimeout(10000, () => {
+                req.destroy();
+                reject(new Error('Request timed out for ' + url));
+              });
+            });
+          }
+
+          (async () => {
+            console.log('=== FinSight Production Post-Deploy Smoke Verification ===');
+            let hasError = false;
+
+            // 1. Backend Liveness Probe
+            try {
+              const healthRes = await fetch('https://finsight-backend-zsz3.onrender.com/health');
+              if (healthRes.statusCode !== 200) {
+                console.error('FAIL: /health returned HTTP ' + healthRes.statusCode);
+                hasError = true;
+              } else {
+                const data = JSON.parse(healthRes.body);
+                if (data.status !== 'healthy') {
+                  console.error('FAIL: /health status is not healthy: ' + data.status);
+                  hasError = true;
+                } else {
+                  console.log('PASS: /health returned HTTP 200 and status healthy.');
+                }
+              }
+            } catch (err) {
+              console.error('FAIL: /health probe failed: ' + err.message);
+              hasError = true;
+            }
+
+            // 2. Backend Readiness & Database Connectivity Probe
+            try {
+              const readyRes = await fetch('https://finsight-backend-zsz3.onrender.com/health/ready');
+              if (readyRes.statusCode !== 200) {
+                console.error('FAIL: /health/ready returned HTTP ' + readyRes.statusCode);
+                hasError = true;
+              } else {
+                const data = JSON.parse(readyRes.body);
+                if (data.status !== 'ready' || data.database !== 'connected') {
+                  console.error('FAIL: /health/ready failed checks (status: ' + data.status + ', database: ' + data.database + ')');
+                  hasError = true;
+                } else {
+                  console.log('PASS: /health/ready returned HTTP 200 and verified database is connected.');
+                }
+              }
+            } catch (err) {
+              console.error('FAIL: /health/ready probe failed: ' + err.message);
+              hasError = true;
+            }
+
+            // 3. Frontend Availability Probe
+            try {
+              const frontRes = await fetch('https://fin-sight-beta-dusky.vercel.app');
+              if (frontRes.statusCode !== 200) {
+                console.error('FAIL: Frontend returned HTTP ' + frontRes.statusCode);
+                hasError = true;
+              } else {
+                console.log('PASS: Frontend returned HTTP 200 OK.');
+              }
+            } catch (err) {
+              console.error('FAIL: Frontend probe failed: ' + err.message);
+              hasError = true;
+            }
+
+            if (hasError) {
+              console.error('Production smoke verification FAILED.');
+              process.exit(1);
+            }
+
+            console.log('All production health and database checks PASSED successfully!');
+          })();
+          "
+
