@@ -1,6 +1,10 @@
 FROM node:20-bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN sed -i 's|http://|https://|g' /etc/apt/sources.list.d/debian.sources \
+    && node -e "const fs = require('fs'); const tls = require('tls'); fs.mkdirSync('/etc/ssl/certs', { recursive: true }); fs.writeFileSync('/etc/ssl/certs/ca-certificates.crt', tls.rootCertificates.join('\n'));" \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    ca-certificates \
     python3 \
     python3-pip \
     python3-venv \
