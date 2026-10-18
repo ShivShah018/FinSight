@@ -2,8 +2,13 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-const VENV_WIN = path.join(__dirname, '..', '..', 'backend', '.venv', 'Scripts', 'python.exe');
-const VENV_UNIX = path.join(__dirname, '..', '..', 'backend', '.venv', 'bin', 'python');
+// Candidate paths for virtual environments in order of priority:
+const SERVER_VENV_WIN = path.join(__dirname, '..', '.venv', 'Scripts', 'python.exe');
+const SERVER_VENV_UNIX = path.join(__dirname, '..', '.venv', 'bin', 'python');
+const ROOT_VENV_WIN = path.join(__dirname, '..', '..', '.venv', 'Scripts', 'python.exe');
+const ROOT_VENV_UNIX = path.join(__dirname, '..', '..', '.venv', 'bin', 'python');
+const BACKEND_VENV_WIN = path.join(__dirname, '..', '..', 'backend', '.venv', 'Scripts', 'python.exe');
+const BACKEND_VENV_UNIX = path.join(__dirname, '..', '..', 'backend', '.venv', 'bin', 'python');
 const DOCKER_VENV = '/opt/venv/bin/python';
 const ML_SCRIPT_PATH = path.join(__dirname, '..', 'ml', 'ml_service.py');
 
@@ -11,11 +16,26 @@ function resolvePythonPath() {
   if (process.env.ML_PYTHON_PATH) {
     return process.env.ML_PYTHON_PATH;
   }
-  if (fs.existsSync(VENV_WIN)) {
-    return VENV_WIN;
+  if (process.env.PYTHON_PATH) {
+    return process.env.PYTHON_PATH;
   }
-  if (fs.existsSync(VENV_UNIX)) {
-    return VENV_UNIX;
+  if (fs.existsSync(SERVER_VENV_WIN)) {
+    return SERVER_VENV_WIN;
+  }
+  if (fs.existsSync(SERVER_VENV_UNIX)) {
+    return SERVER_VENV_UNIX;
+  }
+  if (fs.existsSync(ROOT_VENV_WIN)) {
+    return ROOT_VENV_WIN;
+  }
+  if (fs.existsSync(ROOT_VENV_UNIX)) {
+    return ROOT_VENV_UNIX;
+  }
+  if (fs.existsSync(BACKEND_VENV_WIN)) {
+    return BACKEND_VENV_WIN;
+  }
+  if (fs.existsSync(BACKEND_VENV_UNIX)) {
+    return BACKEND_VENV_UNIX;
   }
   if (fs.existsSync(DOCKER_VENV)) {
     return DOCKER_VENV;
