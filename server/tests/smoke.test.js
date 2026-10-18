@@ -1,8 +1,25 @@
-const { test, describe } = require('node:test');
+const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
+const app = require('../app');
 
-const BASE_URL = process.env.SMOKE_BASE_URL || 'http://localhost:8000';
+let server;
+let BASE_URL = process.env.SMOKE_BASE_URL;
+
+before(async () => {
+  if (!BASE_URL) {
+    server = app.listen(0);
+    await new Promise(resolve => server.once('listening', resolve));
+    const port = server.address().port;
+    BASE_URL = `http://localhost:${port}`;
+  }
+});
+
+after(async () => {
+  if (server) {
+    await new Promise(resolve => server.close(resolve));
+  }
+});
 
 function fetchUrl(path, options = {}) {
   return new Promise((resolve, reject) => {
@@ -68,5 +85,17 @@ describe('Deployment Smoke Test Suite', () => {
     const res = await fetchUrl('/api/non-existent-smoke-path');
     assert.strictEqual(res.status, 404);
     assert.ok(res.data?.detail, 'Should return structured error detail');
+  });
+
+  test('6. Database schema file (schema_railway.sql) does not contain hardcoded USE statements', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const schemaContent = fs.readFileSync(path.join(__dirname, '..', 'database', 'schema_railway.sql'), 'utf8');
+    const hasUseStmt = /^\s*USE\s+/im.test(schemaContent);
+    const hasCreateDb = /^\s*CREATE\s+DATABASE\s+/im.test(schemaContent);
+    assert.strictEqual(hasUseStmt, false, 'schema_railway.sql must not contain hardcoded USE statements so it targets the connection database');
+    assert.strictEqual(hasCreateDb, false, 'schema_railway.sql must not contain hardcoded CREATE DATABASE statements');
+    assert.ok(schemaContent.includes('CREATE TABLE IF NOT EXISTS users'), 'users table must be defined');
+    assert.ok(schemaContent.includes('CREATE TABLE IF NOT EXISTS agent_proposals'), 'agent_proposals table must be defined');
   });
 });

@@ -87,7 +87,7 @@ jobs:
 
       - name: Initialize Test Database Schema
         run: |
-          mysql -h 127.0.0.1 -P 3306 -u root -proot finsight_test < server/database/schema.sql
+          mysql -h 127.0.0.1 -P 3306 -u root -proot finsight_test < server/database/schema_railway.sql
 
       - name: Run Backend Test Suite
         env:
