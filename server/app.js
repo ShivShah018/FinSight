@@ -20,7 +20,7 @@ const currencyController = require('./controllers/currencyController');
 const app = express();
 
 // Read version from package.json
-let appVersion = '1.0.0';
+let appVersion = '1.1.0';
 try {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
   appVersion = pkg.version || appVersion;

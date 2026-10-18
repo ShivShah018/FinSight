@@ -1,27 +1,52 @@
 # FinSight
 
+[![Release](https://img.shields.io/badge/Release-v1.1.0-purple.svg)](https://github.com/ShivShah018/FinSight/releases)
 [![Deployment](https://img.shields.io/badge/Deployment-Live-brightgreen)](https://fin-sight-beta-dusky.vercel.app)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![React](https://img.shields.io/badge/Frontend-React_19_%7C_TypeScript-61DAFB?logo=react)](https://react.dev/)
 [![Express](https://img.shields.io/badge/Backend-Node.js_%7C_Express-000000?logo=nodedotjs)](https://expressjs.com/)
 [![MySQL](https://img.shields.io/badge/Database-MySQL_8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 
-**FinSight** is a full-stack personal finance management platform built with React 19, TypeScript, Express.js, and MySQL. It features interactive data analytics, automated budgeting, savings goal tracking, and ML-powered spending forecasts.
+**FinSight** is a full-stack personal finance management platform built with React 19, TypeScript, Express.js, and MySQL. It combines a bounded, human-in-the-loop agentic AI assistant, deterministic financial analytics, transparent machine learning models, and a sleek responsive dark-mode interface.
 
 🌐 **Live Application:** [https://fin-sight-beta-dusky.vercel.app](https://fin-sight-beta-dusky.vercel.app)  
 ⚙️ **Backend API:** [https://finsight-backend-zsz3.onrender.com](https://finsight-backend-zsz3.onrender.com)
 
 ---
 
-## Key Features
+### Release `v1.1.0` Overview
 
-- 🔐 **Authentication & Security** — JWT-based authentication, bcrypt password hashing, protected routes, and email-based password resets powered by the Resend API. Safe fallback-free secret verification.
-- 🤖 **Agentic AI Finance Assistant** — Autonomous, multi-step financial assistant built with **LangGraph** and **Google Gemini** native function calling. Executes bounded read-only financial tools, calculates grounded metrics, and creates safe budget change proposals requiring explicit human approval before atomic execution.
-- 💳 **Transaction Management** — Full CRUD ledger supporting income and expense tracking, category selection, multi-keyword search, date/month filtering, and soft-delete/restore capabilities.
-- 📊 **Budget Limits & Goal Tracking** — Category-level monthly spending caps with live utilization progress bars, plus interactive savings goals with step-deposit funding.
-- 📈 **Financial Dashboard & Analytics** — 12-month cashflow visualization, net savings rates, category expense distributions, and downloadable PDF account statements.
-- 🧠 **AI/ML Spending Insights** — Machine learning spending predictions (Linear Regression time-series forecasting), behavioral spending category suggestions, and pattern clustering.
-- 📱 **Responsive Dark-Mode Interface** — Sleek glassmorphism UI built with React 19, TypeScript, Tailwind CSS, Recharts, and TanStack Query, accessible across Desktop, Tablet, and Mobile viewports.
+FinSight **v1.1.0** introduces end-to-end conversation persistence between drawer and full-page assistant modes, an animated financial loading experience with rotating insights messages, bounded human-in-the-loop budget proposal approvals with intelligent alternatives, time-aware ML evaluation, a modernized GitHub Actions CI pipeline, and a production-grade multi-container Docker setup.
+
+---
+
+## Features
+
+### 🤖 AI-Powered Financial Assistant
+- **Conversational Intelligence:** Natural language financial analysis and multi-turn Q&A powered by Google Gemini with native tool-calling capabilities.
+- **Bounded Multi-Step Workflow:** LangGraph-based `StateGraph` state machine with typed state, cycle limits (max 3 iterations), and deterministic fallback handlers.
+- **Read-Only Financial Tools:** Grounded in actual ledger data via read-only tools (`get_monthly_spending`, `get_category_breakdown`, `get_budget_status`, etc.) without fabricating numbers.
+- **Live Activity & Metrics Cards:** Visual display of tool execution stages, category spending distributions, and net cashflow metrics directly inside chat responses.
+- **Human-in-the-Loop Budget Approvals:** Gemini proposes budget adjustments with explicit reasons, requiring explicit user approval before atomic execution.
+- **Intelligent Alternatives on Decline:** Rejecting a proposal leaves budget limits untouched and prompts data-grounded alternatives (distinguishing flexible vs. fixed categories).
+- **Persistent Multi-View Conversation:** Conversations survive seamless transitions between the embedded drawer and `/assistant` full page, preserving in-flight typewriter text and message history in user-scoped `sessionStorage`.
+- **Account Isolation & Privacy:** Secure per-user session isolation ensures logout immediately purges cached conversation state, preventing cross-user data leakage.
+
+### 📊 Analytics & Applied Machine Learning
+- **Interactive Analytics & Charts:** 12-month net cashflow bar charts, monthly surplus/deficit tracking, and dynamic multi-currency rendering (`INR`, `USD`, `EUR`, `GBP`).
+- **Animated Loading Experience:** Polished centered loading message (*“Crunching your numbers…”*) featuring a glowing purple gradient orb, pulsing chart bars, three bouncing indicator dots, and smooth fade transitions rotating through short insight previews.
+- **Zero-CLS Skeletons & State Handling:** Layout-preserving dark-mode skeleton placeholders, independent section loading for cashflow vs. spending groups, structured retry buttons on error, and intuitive empty states.
+- **Linear Regression Forecasting:** Time-series expense predictions projected from historical monthly spending.
+- **K-Means Expense Clustering:** Unsupervised grouping of transaction behaviors into ranked clusters based on frequency and ticket size.
+- **Chronological ML Validation:** Real-world time-series holdout evaluation without future lookahead, compared against a naive persistence baseline (last-month spending).
+
+### 🛡️ Reliability & Engineering
+- **Input Validation & Pagination:** Strict Zod schema validation across all endpoints, with bounded transaction pagination (limit capped at 100) to protect database throughput.
+- **Strict JWT Configuration:** Safe secret verification rejecting insecure development fallbacks in production.
+- **Health & Readiness Endpoints:** Dedicated probes (`GET /health` and `GET /health/ready`) reporting uptime, configuration state, and live MySQL database connectivity.
+- **ML Subprocess Isolation & Timeouts:** Python machine learning scripts run in an isolated subprocess with graceful 20-second timeout handling and deterministic fallback outputs.
+- **Automated Testing & CI/CD:** 10 backend test suites (73 tests) covering agent safety, transactional approval, and ML validation; 25 real-browser CDP tests; GitHub Actions CI pipeline; and multi-container Docker/Compose configuration.
+- **Ledger Management & Security:** Full CRUD ledger with soft-delete/restore capabilities, bcrypt password hashing, and A4 PDF statement generation.
 
 ---
 
@@ -420,11 +445,11 @@ The repository includes a modern GitHub Actions workflow at [`.github/workflows/
 ### Health Endpoints
 - `GET /health`: Returns basic service liveness and email provider configuration:
   ```json
-  { "status": "healthy", "version": "1.0.0", "email": { "provider": "resend", "configured": true } }
+  { "status": "healthy", "version": "1.1.0", "email": { "provider": "resend", "configured": true } }
   ```
 - `GET /health/ready`: Probes active MySQL database connectivity:
   ```json
-  { "status": "ready", "database": "connected", "version": "1.0.0" }
+  { "status": "ready", "database": "connected", "version": "1.1.0" }
   ```
 
 ### Common Issues & Solutions
