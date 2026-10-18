@@ -6,8 +6,56 @@ import type {
   BudgetUtilization, 
   DashboardSummary, 
   SpendingPrediction, 
-  SpendingCluster 
+  SpendingCluster,
+  AgentProposal,
+  AgentChatResponse,
+  AlternativesData
 } from '../types';
+
+interface RawUtilizationItem {
+  id: number;
+  category_id?: number;
+  category_name: string;
+  limit?: number;
+  monthly_limit?: number;
+  spent: number;
+  percentage: number;
+}
+
+interface RawCategoryItem {
+  name: string;
+  total: number;
+  percentage: number;
+}
+
+interface RawTransactionItem {
+  id: number;
+  category_id?: number;
+  category_name: string;
+  amount: number;
+  type?: 'income' | 'expense';
+  description?: string;
+  transaction_date: string;
+}
+
+interface RawPredictionResponse {
+  predicted_total?: number;
+  confidence?: number;
+  trend?: string;
+}
+
+interface RawDashboardResponse {
+  total_income: number;
+  total_expense: number;
+  net_savings: number;
+  savings_rate: number;
+  recent_transactions: Transaction[];
+  upcoming_bills: Transaction[];
+  top_categories: (RawCategoryItem | { category_name: string; amount: number; pct: number })[];
+  budget_utilization: Record<string, RawUtilizationItem> | BudgetUtilization[];
+  monthly_trends: { month: string; income: number; expense: number }[];
+  largest_expenses?: RawTransactionItem[];
+}
 
 export const AuthService = {
   forgotPassword: async (email: string) => {
@@ -22,7 +70,7 @@ export const AuthService = {
 
 export const TransactionService = {
   getAll: async (month?: number, year?: number, limit = 500) => {
-    const params: any = { limit };
+    const params: Record<string, string | number> = { limit };
     if (month) params.month = month;
     if (year) params.year = year;
     const res = await apiClient.get<{ transactions: Transaction[]; total: number }>('/transactions', { params });
@@ -72,7 +120,7 @@ export const TransactionService = {
 
 export const CategoryService = {
   getAll: async (type?: 'income' | 'expense') => {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (type) params.type = type;
     const res = await apiClient.get<Category[]>('/categories', { params });
     return res.data;
@@ -138,19 +186,19 @@ export const BudgetService = {
   },
 
   getUtilization: async (month?: number, year?: number) => {
-    const params: any = {};
+    const params: Record<string, number> = {};
     if (month) params.month = month;
     if (year) params.year = year;
-    const res = await apiClient.get<any>('/budgets/utilization', { params });
+    const res = await apiClient.get<Record<string, RawUtilizationItem> | BudgetUtilization[]>('/budgets/utilization', { params });
     if (res.data && !Array.isArray(res.data)) {
-      return Object.values(res.data).map((item: any) => ({
+      return (Object.values(res.data) as RawUtilizationItem[]).map((item) => ({
         id: item.id,
-        category_id: item.category_id,
+        category_id: item.category_id ?? item.id,
         category_name: item.category_name,
-        monthly_limit: item.limit,
+        monthly_limit: item.limit ?? item.monthly_limit ?? 0,
         spent: item.spent,
         pct: item.percentage,
-      })) as BudgetUtilization[];
+      }));
     }
     return res.data as BudgetUtilization[];
   },
@@ -159,40 +207,68 @@ export const BudgetService = {
 
 export const AnalyticsService = {
   getDashboard: async (month?: number, year?: number) => {
-    const params: any = {};
+    const params: Record<string, number> = {};
     if (month) params.month = month;
     if (year) params.year = year;
-    const res = await apiClient.get<any>('/dashboard', { params });
+    const res = await apiClient.get<RawDashboardResponse>('/dashboard', { params });
     const data = res.data;
     if (data) {
-      if (data.budget_utilization && !Array.isArray(data.budget_utilization)) {
-        data.budget_utilization = Object.values(data.budget_utilization).map((item: any) => ({
-          category_id: item.id,
+      let finalUtilization: BudgetUtilization[];
+      if (Array.isArray(data.budget_utilization)) {
+        finalUtilization = data.budget_utilization;
+      } else {
+        finalUtilization = (Object.values(data.budget_utilization) as RawUtilizationItem[]).map((item) => ({
+          id: item.id,
+          category_id: item.category_id ?? item.id,
           category_name: item.category_name,
-          monthly_limit: item.limit,
+          monthly_limit: item.limit ?? item.monthly_limit ?? 0,
           spent: item.spent,
           pct: item.percentage,
         }));
       }
+
+      let finalTopCategories: { category_name: string; amount: number; pct: number }[] = [];
       if (data.top_categories) {
-        data.top_categories = data.top_categories.map((cat: any) => ({
-          category_name: cat.name,
-          amount: cat.total,
-          pct: cat.percentage,
-        }));
+        finalTopCategories = data.top_categories.map((cat) => {
+          if ('category_name' in cat) {
+            return cat;
+          }
+          return {
+            category_name: cat.name,
+            amount: cat.total,
+            pct: cat.percentage,
+          };
+        });
       }
+
+      let finalRecent = data.recent_transactions;
       if (data.largest_expenses) {
-        data.recent_transactions = data.largest_expenses.map((tx: any) => ({
+        finalRecent = data.largest_expenses.map((tx: RawTransactionItem) => ({
           id: tx.id,
+          category_id: tx.category_id ?? 0,
           category_name: tx.category_name,
           amount: tx.amount,
           type: tx.type || 'expense',
           description: tx.description || tx.category_name,
           transaction_date: tx.transaction_date,
+          currency: 'INR' as const,
         }));
       }
+
+      const summary: DashboardSummary = {
+        total_income: data.total_income,
+        total_expense: data.total_expense,
+        net_savings: data.net_savings,
+        savings_rate: data.savings_rate,
+        recent_transactions: finalRecent,
+        upcoming_bills: data.upcoming_bills,
+        top_categories: finalTopCategories,
+        budget_utilization: finalUtilization,
+        monthly_trends: data.monthly_trends,
+      };
+      return summary;
     }
-    return data as DashboardSummary;
+    return data as unknown as DashboardSummary;
   },
 
   getTrends: async (months = 12) => {
@@ -206,7 +282,7 @@ export const AnalyticsService = {
 
 export const InsightService = {
   predict: async () => {
-    const res = await apiClient.get<any>('/insights/predict');
+    const res = await apiClient.get<RawPredictionResponse>('/insights/predict');
     const data = res.data;
     if (data) {
       return {
@@ -237,7 +313,7 @@ export const InsightService = {
 
 export const ReportService = {
   generate: async (emailTo?: string) => {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (emailTo) params.email_to = emailTo;
     const res = await apiClient.post<{ path: string; message: string }>('/report/generate', {}, { params });
     return res.data;
@@ -250,3 +326,62 @@ export const ReportService = {
     return res.data;
   }
 };
+
+export const AgentService = {
+  chat: async (
+    message: string, 
+    history: { role: 'user' | 'assistant'; content: string }[] = [],
+    reportingPeriod?: string | { period: string; year?: number; month?: number; start_date?: string; end_date?: string; label?: string },
+    signal?: AbortSignal
+  ) => {
+    const res = await apiClient.post<AgentChatResponse>('/agent/chat', { 
+      message, 
+      history,
+      reporting_period: typeof reportingPeriod === 'string' ? { period: reportingPeriod } : reportingPeriod 
+    }, {
+      timeout: 45000,
+      signal
+    });
+    return res.data;
+  },
+
+  getProposals: async () => {
+    const res = await apiClient.get<AgentProposal[]>('/agent/proposals');
+    return res.data;
+  },
+
+  getProposal: async (id: number) => {
+    const res = await apiClient.get<AgentProposal>(`/agent/proposals/${id}`);
+    return res.data;
+  },
+
+  approveProposal: async (id: number) => {
+    const res = await apiClient.post<{
+      success: boolean;
+      message: string;
+      proposal_id: number;
+      target_budget_id: number;
+      previous_amount: number;
+      new_amount: number;
+    }>(`/agent/proposals/${id}/approve`);
+    return res.data;
+  },
+
+  rejectProposal: async (id: number) => {
+    const res = await apiClient.post<{
+      success: boolean;
+      message: string;
+      proposal_id: number;
+      status: string;
+      already_declined?: boolean;
+      category_name?: string;
+      current_amount?: number;
+      proposed_amount?: number;
+      acknowledgement?: string;
+      alternatives_data?: AlternativesData;
+      assistant_reply?: string;
+    }>(`/agent/proposals/${id}/reject`);
+    return res.data;
+  }
+};
+

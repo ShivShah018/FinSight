@@ -32,8 +32,13 @@ const budgetController = {
       const userId = req.user.id;
       const { category_id, monthly_limit } = req.body;
 
-      if (!category_id || monthly_limit === undefined) {
+      if (!category_id || monthly_limit === undefined || monthly_limit === null) {
         return res.status(400).json({ detail: 'Missing category_id or monthly_limit' });
+      }
+
+      const limitNum = parseFloat(monthly_limit);
+      if (isNaN(limitNum) || limitNum < 0 || !isFinite(limitNum)) {
+        return res.status(400).json({ detail: 'monthly_limit must be a non-negative number' });
       }
 
       // Check if category belongs to user
@@ -65,8 +70,13 @@ const budgetController = {
       const budgetId = req.params.budget_id;
       const { monthly_limit } = req.body;
 
-      if (monthly_limit === undefined) {
+      if (monthly_limit === undefined || monthly_limit === null) {
         return res.status(400).json({ detail: 'Missing monthly_limit' });
+      }
+
+      const limitNum = parseFloat(monthly_limit);
+      if (isNaN(limitNum) || limitNum < 0 || !isFinite(limitNum)) {
+        return res.status(400).json({ detail: 'monthly_limit must be a non-negative number' });
       }
 
       await pool.execute(`

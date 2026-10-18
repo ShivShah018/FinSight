@@ -38,7 +38,7 @@ export const Register: React.FC = () => {
   const onSubmit = async (data: RegisterFormValues) => {
     try {
       await registerUser(data.fullName, data.email, data.password);
-    } catch (e) {
+    } catch {
       // Errors handled by AuthContext toasts
     }
   };

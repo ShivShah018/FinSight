@@ -44,8 +44,9 @@ export const ResetPassword: React.FC = () => {
     try {
       const res = await AuthService.resetPassword(token, data.password);
       setSuccessMessage(res.message || 'Password reset successfully.');
-    } catch (err: any) {
-      setServerError(err.response?.data?.detail || 'Invalid or expired password reset link.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setServerError(error.response?.data?.detail || 'Invalid or expired password reset link.');
     }
   };
 

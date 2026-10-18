@@ -16,6 +16,7 @@ import {
   Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import type { Goal } from '../types';
 
 export const Goals: React.FC = () => {
   const { user } = useAuth();
@@ -25,7 +26,7 @@ export const Goals: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [fundingGoal, setFundingGoal] = useState<{ id: number; name: string } | null>(null);
   const [deletingGoal, setDeletingGoal] = useState<{ id: number; name: string } | null>(null);
-  const [editingGoal, setEditingGoal] = useState<any>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [editName, setEditName] = useState('');
   const [editTargetAmount, setEditTargetAmount] = useState('');
   const [editDeadline, setEditDeadline] = useState('');
@@ -53,8 +54,9 @@ export const Goals: React.FC = () => {
       setTargetAmount('');
       setDeadline('');
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to create goal.');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { detail?: string } } };
+      toast.error(error.response?.data?.detail || 'Failed to create goal.');
     }
   });
 
@@ -66,8 +68,9 @@ export const Goals: React.FC = () => {
       setFundingGoal(null);
       setFundAmount('');
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to add funds.');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { detail?: string } } };
+      toast.error(error.response?.data?.detail || 'Failed to add funds.');
     }
   });
 
@@ -94,14 +97,15 @@ export const Goals: React.FC = () => {
   });
 
   const updateGoalMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => GoalService.update(id, data),
+    mutationFn: ({ id, data }: { id: number; data: { name?: string; target_amount?: number; deadline?: string } }) => GoalService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
       toast.success('Savings goal updated!');
       setEditingGoal(null);
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to update goal.');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { detail?: string } } };
+      toast.error(error.response?.data?.detail || 'Failed to update goal.');
     }
   });
 

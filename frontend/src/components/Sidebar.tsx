@@ -10,7 +10,8 @@ import {
   BarChart3, 
   Settings, 
   LogOut, 
-  TrendingUp 
+  TrendingUp,
+  Sparkles
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -18,6 +19,7 @@ export const Sidebar: React.FC = () => {
 
   const links = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/assistant', label: 'AI Assistant', icon: Sparkles },
     { to: '/transactions', label: 'Transactions', icon: ArrowRightLeft },
     { to: '/categories', label: 'Categories', icon: Tags },
     { to: '/budgets', label: 'Budgets', icon: Wallet },
@@ -65,7 +67,7 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-800/40 border border-slate-800/50 mb-2">
           <div className="flex items-center gap-3 truncate">
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-semibold text-sm uppercase">
-              {user?.name.charAt(0) || 'U'}
+              {user?.name?.charAt(0) || 'U'}
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-slate-200 truncate">{user?.name}</p>

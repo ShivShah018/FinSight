@@ -12,7 +12,8 @@ import {
   PlusCircle, 
   Calendar, 
   Briefcase,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -27,6 +28,7 @@ import {
 } from 'recharts';
 import toast from 'react-hot-toast';
 import { tooltipStyle, tooltipLabelStyle } from '../utils/theme';
+import { FinanceAssistant } from './FinanceAssistant';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -36,6 +38,10 @@ export const Dashboard: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  // Embedded assistant drawer states
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState<string>('');
 
   // Form states for quick transaction creation
   const [amount, setAmount] = useState('');
@@ -86,8 +92,9 @@ export const Dashboard: React.FC = () => {
       setCategoryId('');
       setDescription('');
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to create transaction');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { detail?: string } } };
+      toast.error(error.response?.data?.detail || 'Failed to create transaction');
     }
   });
 
@@ -162,7 +169,7 @@ export const Dashboard: React.FC = () => {
 
   // Fill in all 12 months so gaps show as zero
   const allMonths: { month: string; income: number; expense: number; net: number }[] = [];
-  const trendMap = new Map((dashboardData.monthly_trends || []).map((m: any) => [m.month, m]));
+  const trendMap = new Map((dashboardData.monthly_trends || []).map((m: { month: string; income?: number; expense?: number }) => [m.month, m]));
   for (let i = 11; i >= 0; i--) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
@@ -227,6 +234,18 @@ export const Dashboard: React.FC = () => {
               ))}
             </select>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAssistantPrompt('Explain my cashflow summary and suggest ways to improve my monthly spending.');
+              setIsAssistantOpen(true);
+            }}
+            className="flex items-center gap-1.5 bg-slate-850 hover:bg-slate-800 text-purple-300 hover:text-white font-semibold text-sm px-3.5 py-2.5 rounded-xl border border-slate-700/80 transition-all cursor-pointer shadow-sm"
+          >
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="hidden sm:inline">Ask AI</span>
+          </button>
 
           <button
             onClick={() => setShowAddModal(true)}
@@ -318,7 +337,7 @@ export const Dashboard: React.FC = () => {
                   contentStyle={tooltipStyle()}
                   labelStyle={tooltipLabelStyle()}
                   itemStyle={{ color: 'inherit' }}
-                  formatter={(value: any) => convertCurrency(Number(value) || 0, cur, rates)}
+                  formatter={(value: unknown) => convertCurrency(Number(value) || 0, cur, rates)}
                 />
                 <Bar dataKey="net" radius={[4, 4, 0, 0]} name="Net Savings">
                   {allMonths.map((d, i) => (
@@ -442,11 +461,33 @@ export const Dashboard: React.FC = () => {
                     <span className="text-xs font-semibold text-slate-300">{(prediction.confidence_score * 100).toFixed(0)}%</span>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantPrompt(`Explain my monthly spending forecast of ${fmt(prediction.next_month_prediction)} and suggest ways to optimize my cashflow.`);
+                    setIsAssistantOpen(true);
+                  }}
+                  className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-purple-600/20 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/30 transition-all cursor-pointer shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Ask AI about these insights</span>
+                </button>
               </div>
             ) : (
               <div className="text-slate-500 text-xs py-8">
                 <Briefcase className="w-8 h-8 text-slate-600 mb-2 mx-auto animate-pulse" />
-                Not enough historical data to generate predictions. Add more expense history.
+                <p>Not enough historical data to generate predictions. Add more expense history.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantPrompt('Analyze my transaction history and suggest ways to organize my spending.');
+                    setIsAssistantOpen(true);
+                  }}
+                  className="mt-3 mx-auto flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Ask AI for spending insights</span>
+                </button>
               </div>
             )}
           </div>
@@ -582,6 +623,16 @@ export const Dashboard: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Embedded Assistant Drawer (Opens without navigating away) */}
+      {isAssistantOpen && (
+        <FinanceAssistant
+          isDrawer={true}
+          onClose={() => setIsAssistantOpen(false)}
+          initialPrompt={assistantPrompt}
+          initialPeriod={selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear() ? 'this_month' : 'auto'}
+        />
       )}
     </div>
   );

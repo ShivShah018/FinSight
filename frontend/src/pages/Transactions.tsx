@@ -15,6 +15,19 @@ import {
   Calendar
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import type { Transaction } from '../types';
+
+interface WindowWithSaveFilePicker extends Window {
+  showSaveFilePicker?: (options?: {
+    suggestedName?: string;
+    types?: Array<{ description: string; accept: Record<string, string[]> }>;
+  }) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: unknown) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+}
 
 export const Transactions: React.FC = () => {
   const { user } = useAuth();
@@ -28,7 +41,7 @@ export const Transactions: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number | undefined>(new Date().getFullYear());
   const [showSoftDeleted, setShowSoftDeleted] = useState(false);
-  const [editingTx, setEditingTx] = useState<any>(null);
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [editType, setEditType] = useState<'income' | 'expense'>('expense');
   const [editAmount, setEditAmount] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -80,7 +93,7 @@ export const Transactions: React.FC = () => {
   });
 
   const updateTxMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => TransactionService.update(id, data),
+    mutationFn: ({ id, data }: { id: number; data: { category_id?: number; amount?: number; type?: 'income' | 'expense'; description?: string; currency?: string; transaction_date?: string } }) => TransactionService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -88,17 +101,19 @@ export const Transactions: React.FC = () => {
       toast.success('Transaction updated!');
       setEditingTx(null);
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to update transaction.');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { detail?: string } } };
+      toast.error(error.response?.data?.detail || 'Failed to update transaction.');
     }
   });
 
   const exportPdfMutation = useMutation({
     mutationFn: () => ReportService.downloadPdf(),
-    onSuccess: async (blobData: any) => {
+    onSuccess: async (blobData: BlobPart) => {
       try {
-        if ('showSaveFilePicker' in window) {
-          const handle = await (window as any).showSaveFilePicker({
+        const win = window as WindowWithSaveFilePicker;
+        if (win.showSaveFilePicker) {
+          const handle = await win.showSaveFilePicker({
             suggestedName: `finsight_statement_${new Date().toISOString().slice(0, 10)}.pdf`,
             types: [{
               description: 'PDF Document',
@@ -121,8 +136,9 @@ export const Transactions: React.FC = () => {
           document.body.removeChild(link);
           toast.success('PDF statement downloaded successfully!');
         }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
+      } catch (err: unknown) {
+        const error = err as Error;
+        if (error.name !== 'AbortError') {
           if (import.meta.env.DEV) console.error(err);
           toast.error('Failed to save PDF statement.');
         }

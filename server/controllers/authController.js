@@ -3,15 +3,16 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { pool, seedCategories } = require('../db');
 const { sendPasswordResetEmail } = require('../utils/emailService');
+const { getJwtSecret } = require('../utils/jwtConfig');
 
 const resetRateLimitMap = new Map();
 
-const JWT_SECRET = process.env.JWT_SECRET_KEY || 'finsight-jwt-secret-change-in-production';
 const JWT_EXPIRATION_MINUTES = parseInt(process.env.JWT_EXPIRATION_MINUTES || '1440', 10);
 
 function createAccessToken(userId, email) {
+  const secret = getJwtSecret();
   const expires = Math.floor(Date.now() / 1000) + (JWT_EXPIRATION_MINUTES * 60);
-  return jwt.sign({ sub: userId.toString(), email, exp: expires }, JWT_SECRET);
+  return jwt.sign({ sub: userId.toString(), email, exp: expires }, secret);
 }
 
 const authController = {

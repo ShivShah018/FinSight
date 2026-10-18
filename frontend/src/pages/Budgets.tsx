@@ -48,8 +48,9 @@ export const Budgets: React.FC = () => {
       setCategoryId('');
       setMonthlyLimit('');
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to configure budget limit.');
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { detail?: string } } };
+      toast.error(error.response?.data?.detail || 'Failed to configure budget limit.');
     }
   });
 

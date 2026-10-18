@@ -107,5 +107,29 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     INDEX idx_token_hash (token_hash)
 ) ENGINE=InnoDB;
 
+-- -----------------------------------------------------------
+-- 7. AGENT_PROPOSALS
+-- -----------------------------------------------------------
+CREATE TABLE IF NOT EXISTS agent_proposals (
+    id                  INT AUTO_INCREMENT PRIMARY KEY,
+    user_id             INT             NOT NULL,
+    action_type         VARCHAR(50)     NOT NULL DEFAULT 'UPDATE_BUDGET',
+    target_budget_id    INT             NOT NULL,
+    current_amount      DECIMAL(12, 2)  NOT NULL,
+    proposed_amount     DECIMAL(12, 2)  NOT NULL CHECK (proposed_amount > 0),
+    reason              TEXT            NOT NULL,
+    supporting_evidence JSON            DEFAULT NULL,
+    status              ENUM('pending', 'approved', 'rejected', 'expired') DEFAULT 'pending',
+    created_at          TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    expires_at          DATETIME        NOT NULL,
+    updated_at          TIMESTAMP       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id)          REFERENCES users(id)         ON DELETE CASCADE,
+    FOREIGN KEY (target_budget_id) REFERENCES budget_limits(id) ON DELETE CASCADE,
+    INDEX idx_user_status (user_id, status),
+    INDEX idx_expires (expires_at)
+) ENGINE=InnoDB;
+
+
 
 

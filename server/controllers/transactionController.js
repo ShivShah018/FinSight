@@ -4,7 +4,8 @@ const transactionController = {
   listTransactions: async (req, res) => {
     try {
       const userId = req.user.id;
-      const limit = parseInt(req.query.limit || '100', 10);
+      const rawLimit = parseInt(req.query.limit || '100', 10);
+      const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 100 : rawLimit), 100);
       const month = req.query.month ? parseInt(req.query.month, 10) : null;
       const year = req.query.year ? parseInt(req.query.year, 10) : null;
 
@@ -79,8 +80,13 @@ const transactionController = {
       const userId = req.user.id;
       const { category_id, amount, type, description, transaction_date, currency, is_bill } = req.body;
 
-      if (!category_id || !amount || !type || !transaction_date) {
+      if (!category_id || amount === undefined || amount === null || !type || !transaction_date) {
         return res.status(400).json({ detail: 'Missing required transaction fields' });
+      }
+
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0 || !isFinite(numAmount)) {
+        return res.status(400).json({ detail: 'Amount must be a positive number' });
       }
 
       const parsedDate = new Date(transaction_date);

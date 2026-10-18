@@ -15,11 +15,12 @@
 
 ## Key Features
 
-- 🔐 **Authentication & Security** — JWT-based authentication, bcrypt password hashing, protected routes, and email-based password resets powered by the Resend API.
+- 🔐 **Authentication & Security** — JWT-based authentication, bcrypt password hashing, protected routes, and email-based password resets powered by the Resend API. Safe fallback-free secret verification.
+- 🤖 **Agentic AI Finance Assistant** — Autonomous, multi-step financial assistant built with **LangGraph** and **Google Gemini** native function calling. Executes bounded read-only financial tools, calculates grounded metrics, and creates safe budget change proposals requiring explicit human approval before atomic execution.
 - 💳 **Transaction Management** — Full CRUD ledger supporting income and expense tracking, category selection, multi-keyword search, date/month filtering, and soft-delete/restore capabilities.
 - 📊 **Budget Limits & Goal Tracking** — Category-level monthly spending caps with live utilization progress bars, plus interactive savings goals with step-deposit funding.
 - 📈 **Financial Dashboard & Analytics** — 12-month cashflow visualization, net savings rates, category expense distributions, and downloadable PDF account statements.
-- 🤖 **AI/ML Spending Insights** — Machine learning spending predictions (Linear Regression time-series forecasting), behavioral spending category suggestions, and pattern clustering.
+- 🧠 **AI/ML Spending Insights** — Machine learning spending predictions (Linear Regression time-series forecasting), behavioral spending category suggestions, and pattern clustering.
 - 📱 **Responsive Dark-Mode Interface** — Sleek glassmorphism UI built with React 19, TypeScript, Tailwind CSS, Recharts, and TanStack Query, accessible across Desktop, Tablet, and Mobile viewports.
 
 ---
@@ -30,7 +31,8 @@
 | :--- | :--- |
 | **Frontend** | React 19, TypeScript, Vite, TanStack Query v5, Recharts, Lucide Icons, React Hook Form, Zod, Tailwind CSS |
 | **Backend** | Node.js, Express.js, JWT (`jsonwebtoken`), `bcrypt`, `mysql2` (Prepared Statements), `pdfkit` |
-| **Database** | MySQL 8.0 (6 Relational Tables with Foreign Keys, Cascading Deletes, Unique Constraints, and Composite Indexes) |
+| **Agentic AI** | LangGraph (`@langchain/langgraph`), Google Gemini (`@langchain/google-genai`), `@langchain/core`, Zod validation |
+| **Database** | MySQL 8.0 (7 Relational Tables with Foreign Keys, Cascading Deletes, Unique Constraints, and Composite Indexes) |
 | **Email Service** | Resend API (Transactional emails for password reset verification) |
 | **Machine Learning** | Python 3, `scikit-learn` (Linear Regression, K-Means Clustering, TimeSeriesSplit) |
 | **Deployment** | Vercel (Frontend SPA with URL rewrites), Render (Express.js API), MySQL Cloud Database |
@@ -149,6 +151,13 @@ All protected endpoints require an `Authorization: Bearer <token>` header.
 - `GET /currency/rates` — Live multi-currency conversion rates
 - `GET /health` — Application health & Resend service configuration status
 
+### Agentic AI Assistant
+- `POST /agent/chat` — Bounded multi-step conversational query with Gemini native tool execution
+- `GET /agent/proposals` — List pending and historical budget modification proposals
+- `GET /agent/proposals/:proposal_id` — Get single proposal details with live staleness status
+- `POST /agent/proposals/:proposal_id/approve` — Atomically approve and apply budget update
+- `POST /agent/proposals/:proposal_id/reject` — Reject proposal without modifying budget limits
+
 ### ML Insights
 - `GET /insights/predict` — Next-month spending prediction (Linear Regression)
 - `GET /insights/suggest-category` — Automated expense category classification
@@ -205,14 +214,26 @@ erDiagram
         datetime expires_at
         datetime used_at
     }
+    agent_proposals {
+        int id PK
+        int user_id FK
+        int target_budget_id FK
+        decimal current_amount
+        decimal proposed_amount
+        text reason
+        enum status
+        datetime expires_at
+    }
 
     users ||--o{ categories : "owns"
     users ||--o{ transactions : "records"
     users ||--o{ savings_goals : "manages"
     users ||--o{ budget_limits : "configures"
     users ||--o{ password_reset_tokens : "receives"
+    users ||--o{ agent_proposals : "reviews"
     categories ||--o{ transactions : "classifies"
     categories ||--o{ budget_limits : "restricts"
+    budget_limits ||--o{ agent_proposals : "targeted_by"
 ```
 
 ---
@@ -267,6 +288,12 @@ FINSIGHT_DB_NAME=finsight
 JWT_SECRET_KEY=your_secure_jwt_secret
 API_PORT=8000
 RESEND_API_KEY=re_your_resend_api_key
+
+# Agentic AI (Google Gemini & LangGraph)
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-3.5-flash-lite
+AGENT_MAX_ITERATIONS=3
+AGENT_PROPOSAL_EXPIRY_HOURS=24
 ```
 Start the backend server:
 ```bash
@@ -285,15 +312,153 @@ npm run dev
 
 ---
 
+## Automated Testing
+
+FinSight includes comprehensive unit, integration, security, and E2E test suites:
+
+### 1. Server Unit, Agent, ML & Approval Security Tests
+Uses Node's built-in native test runner (`node --test`). Tests tool schemas, empty data handling, anomaly detection, LangGraph state transitions, bounded iteration stops, authorization boundaries, proposal staleness checks, atomic transactional approval, time-aware ML evaluation, and deployment smoke checks across 10 suites (73 automated tests):
+```bash
+cd server
+npm test
+```
+
+### 2. Machine Learning Time-Aware Evaluation & Clustering Tests
+Tests Python `ml_service.py` subprocess execution, holdout train/test split without future data leakage, naive persistence baseline comparison, and K-Means expense clustering:
+```bash
+cd server
+node --test tests/mlService.test.js
+```
+
+### 3. Full End-to-End Integration Suite
+Tests the complete realistic user lifecycle against the running backend (46 tests):
+```bash
+node test_e2e.js
+```
+
+### 4. Real Browser UI & Assistant Persistence Suite (Chrome CDP)
+Executes end-to-end user journeys in headless Chrome using native Chrome DevTools Protocol (CDP) on port 9222 without third-party frameworks. Verifies registration, login, drawer interactions, question sequencing, route transitions between drawer and `/assistant`, follow-ups, typewriter animation, page refresh state recovery from `sessionStorage`, and strict User B account data isolation (25 tests):
+```bash
+# Ensure frontend dev server is running on localhost:5173 and backend on localhost:8000
+node test_browser_conversation_flow.js
+```
+
+### 5. Frontend Linting & Production Build
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+---
+
+## Docker & Containerization
+
+FinSight provides container definitions for a clean, reproducible local development and testing environment.
+
+### Backend Dockerfile (`Dockerfile`)
+- **Base:** `node:20-bookworm-slim` with Python 3 virtual environment for ML execution.
+- **Security:** Runs as unprivileged `USER node`.
+- **Health Check:** Native HTTP probe polling `GET /health` every 30 seconds.
+- **Port:** Exposes port 8000 (configurable via `PORT` / `API_PORT`).
+
+### Docker Compose (`docker-compose.yml`)
+Spins up both MySQL 8.0 and the Express + Python ML backend in an isolated bridge network:
+
+```bash
+# Start MySQL and Express Backend containers
+docker compose up --build -d
+
+# View service logs
+docker compose logs -f backend
+
+# Verify health status
+curl http://localhost:8000/health
+curl http://localhost:8000/health/ready
+
+# Tear down environment
+docker compose down -v
+```
+
+---
+
+## CI/CD Pipeline (GitHub Actions)
+
+The repository includes a modern GitHub Actions workflow at [`.github/workflows/ci.yml`](.github/workflows/ci.yml) triggered on pull requests and pushes to `main` and `develop`:
+
+1. **Frontend Job (`frontend-ci`):**
+   - Node 20 runtime with `npm` dependency caching.
+   - ESLint validation (`npm run lint`).
+   - TypeScript compilation and Vite production build (`npm run build`).
+2. **Backend Job (`backend-ci`):**
+   - MySQL 8.0 service container with health check.
+   - Python 3.11 environment with `numpy` and `scikit-learn` dependencies.
+   - Automatic database schema migration via `server/database/schema_railway.sql`.
+   - Node native test suite execution (`npm test` — 73 tests).
+3. **Security Audit (`security-audit`):**
+   - High-severity dependency vulnerability audit (`npm audit --audit-level=high`).
+4. **Safety & Governance:**
+   - Concurrency control cancels redundant runs on new pushes (`cancel-in-progress: true`).
+   - Least privilege repository permissions (`contents: read`).
+   - Third-party actions pinned to audited versions (`@v4`).
+
+---
+
+## Hosting & Deployment Architecture
+
+- **Frontend (Vercel):** Single-page application hosted on Vercel with client-side routing via [`vercel.json`](vercel.json). Automatically deploys production branch upon GitHub push.
+- **Backend (Render):** Express API web service hosted on Render with automatic GitHub deployment hooks.
+- **Database (Cloud MySQL):** Managed MySQL 8.0 database instance with connection pooling (`mysql2`).
+
+> [!IMPORTANT]
+> GitHub Actions handles continuous integration and quality gates. Actual production deployments to Vercel and Render are gated and decouple CI test verification from live deployment execution.
+
+---
+
+## Health Checks & Troubleshooting
+
+### Health Endpoints
+- `GET /health`: Returns basic service liveness and email provider configuration:
+  ```json
+  { "status": "healthy", "version": "1.0.0", "email": { "provider": "resend", "configured": true } }
+  ```
+- `GET /health/ready`: Probes active MySQL database connectivity:
+  ```json
+  { "status": "ready", "database": "connected", "version": "1.0.0" }
+  ```
+
+### Common Issues & Solutions
+1. **Database Connection Refused (`ECONNREFUSED`):**
+   - Verify MySQL server is active on `FINSIGHT_DB_HOST`:`FINSIGHT_DB_PORT`.
+   - Check credentials in `server/.env`.
+2. **Python Subprocess Timeout in ML Insights:**
+   - On Windows cold starts, scikit-learn import may take a few seconds. FinSight defaults to a 20-second timeout, configurable via `ML_TIMEOUT_MS=20000`.
+   - Ensure the virtual environment at `backend/.venv` (or Docker `/opt/venv`) has `scikit-learn` and `numpy` installed.
+3. **Gemini AI Rate Limits (`429 RESOURCE_EXHAUSTED`):**
+   - The assistant agent automatically detects quota exhaustion and provides structured, deterministic financial fallback insights using verified tool execution data without crashing.
+
+---
+
+## Known Limitations & Portfolio Notes
+
+- **Model Complexity:** FinSight intentionally employs Linear Regression and K-Means clustering for financial transparency and rapid explainability. It avoids black-box neural architectures for simple monthly ledger analysis.
+- **Holdout Evaluation:** Predictive accuracy is evaluated using a time-aware train/test split (no future lookahead) compared against a naive persistence baseline (last-month spending).
+- **Conversation Storage:** Assistant conversations are persisted in `sessionStorage` scoped per user ID. Server-side session sync is intentionally avoided to preserve privacy and minimize database bloat.
+
+---
+
 ## Engineering Highlights & Design Rationale
 
+- **Agentic AI with LangGraph & Gemini Function Calling:** Unlike naive single-shot chatbot wrappers, FinSight coordinates a bounded multi-step state graph (`StateGraph`) with explicit typed state, deterministic evaluation nodes, and bounded iterations.
+- **Human-in-the-Loop Financial Action Approvals:** Gemini is strictly restricted to read-only tool invocation and cannot execute budget changes directly. When financial optimization suggests a budget change, the agent generates a pending proposal stored in MySQL. Users must review and explicitly approve proposals.
+- **Stale Proposal & Replay Protection:** Approval executes inside an isolated database transaction with row locks (`FOR UPDATE`). If the live budget changed since the proposal was created, the approval is rejected with HTTP 409 Conflict to protect the user's finances.
+- **SQL Security & Performance:** All database interactions use prepared statements via `mysql2` to prevent SQL injection. Composite indexes (`idx_user_date`, `idx_user_status`) accelerate range queries.
+- **Zero-CLS Skeleton UI:** Dedicated skeleton placeholders match the dark theme and preserve layout stability during chart and cluster data fetching.
 - **Decoupled SPA / REST Architecture:** Frontend and backend are completely decoupled. The SPA communicates exclusively via JSON HTTP requests, enabling independent deployments on Vercel and Render.
-- **SQL Security & Performance:** All database interactions use prepared statements via `mysql2` to prevent SQL injection. Composite indexes (`idx_user_date`) accelerate range queries across multi-year transaction ledgers.
-- **Soft Delete Pattern:** Deleted transactions maintain audit compliance by populating `deleted_at = NOW()`. Users can instantly undo accidental deletions from the UI.
-- **Decoupled ML Subprocess:** Express spawns an isolated Python process communicating via JSON over stdin/stdout, eliminating heavy native Python dependencies from the Node.js runtime.
 
 ---
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+

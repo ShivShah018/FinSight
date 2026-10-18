@@ -16,6 +16,8 @@ import { Budgets } from './pages/Budgets';
 import { Goals } from './pages/Goals';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
+// Agentic AI Assistant
+import { FinanceAssistant } from './pages/FinanceAssistant';
 import { NotFound } from './pages/NotFound';
 
 export const App: React.FC = () => {
@@ -36,6 +38,22 @@ export const App: React.FC = () => {
           element={
             <Layout>
               <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/assistant"
+          element={
+            <Layout>
+              <FinanceAssistant />
+            </Layout>
+          }
+        />
+        <Route
+          path="/finance-assistant"
+          element={
+            <Layout>
+              <FinanceAssistant />
             </Layout>
           }
         />

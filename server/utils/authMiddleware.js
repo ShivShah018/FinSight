@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
-
-const JWT_SECRET = process.env.JWT_SECRET_KEY || 'finsight-jwt-secret-change-in-production';
+const { getJwtSecret } = require('./jwtConfig');
 
 async function authMiddleware(req, res, next) {
   try {
@@ -13,8 +12,13 @@ async function authMiddleware(req, res, next) {
     const token = authHeader.split(' ')[1];
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      const secret = getJwtSecret();
+      decoded = jwt.verify(token, secret);
     } catch (err) {
+      if (err.message && err.message.startsWith('FATAL CONFIGURATION ERROR')) {
+        console.error(err.message);
+        return res.status(500).json({ detail: 'Authentication service misconfigured' });
+      }
       return res.status(401).json({ detail: 'Invalid or expired token' });
     }
 

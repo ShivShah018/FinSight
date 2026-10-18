@@ -31,7 +31,7 @@ export const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       await login(data.email, data.password);
-    } catch (e) {
+    } catch {
       // Errors handled by AuthContext toasts
     }
   };

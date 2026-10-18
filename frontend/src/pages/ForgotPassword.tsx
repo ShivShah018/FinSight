@@ -32,8 +32,9 @@ export const ForgotPassword: React.FC = () => {
     try {
       const res = await AuthService.forgotPassword(data.email);
       setSuccessMessage(res.message || "If an account with that email exists, a password reset link has been sent.");
-    } catch (err: any) {
-      setServerError(err.response?.data?.detail || "An unexpected error occurred. Please try again.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setServerError(error.response?.data?.detail || "An unexpected error occurred. Please try again.");
     }
   };
 

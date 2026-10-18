@@ -11,6 +11,7 @@ const goalsRouter = require('./routes/goals');
 const budgetsRouter = require('./routes/budgets');
 const analyticsRouter = require('./routes/analytics');
 const insightsRouter = require('./routes/insights');
+const agentRouter = require('./routes/agent');
 
 const transactionController = require('./controllers/transactionController');
 const analyticsController = require('./controllers/analyticsController');
@@ -36,7 +37,7 @@ app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check
+// Health & Readiness Checks
 app.get('/health', (req, res) => {
   return res.status(200).json({
     status: 'healthy',
@@ -46,6 +47,24 @@ app.get('/health', (req, res) => {
       configured: !!process.env.RESEND_API_KEY
     }
   });
+});
+
+app.get('/health/ready', async (req, res) => {
+  try {
+    const { pool } = require('./db');
+    await pool.query('SELECT 1');
+    return res.status(200).json({
+      status: 'ready',
+      database: 'connected',
+      version: appVersion
+    });
+  } catch (err) {
+    return res.status(503).json({
+      status: 'not_ready',
+      database: 'disconnected',
+      detail: 'Database readiness check failed'
+    });
+  }
 });
 
 // Top-level unauthenticated routes
@@ -58,6 +77,7 @@ app.use('/goals', goalsRouter);
 app.use('/budgets', budgetsRouter);
 app.use('/analytics', analyticsRouter);
 app.use('/insights', insightsRouter);
+app.use('/agent', agentRouter);
 
 // Top-level authenticated routes
 app.get('/categories', authMiddleware, transactionController.listCategories);

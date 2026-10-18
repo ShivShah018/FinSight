@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { User } from '../types';
 import { apiClient } from '../api/apiClient';
@@ -22,6 +22,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const logout = useCallback(() => {
+    // Clear user-scoped assistant conversation and animation entries from sessionStorage
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && (
+            key.startsWith('finsight_conversation_') ||
+            key.startsWith('finsight_completed_') ||
+            key.startsWith('finsight_interrupted_') ||
+            key.startsWith('finsight_period_') ||
+            key.startsWith('finsight_revealed_')
+          )) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => sessionStorage.removeItem(k));
+      } catch (_err) {
+        void _err;
+      }
+    }
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('finsight_token');
+    localStorage.removeItem('finsight_user');
+    queryClient.clear();
+    toast.success('Logged out successfully.');
+  }, [queryClient]);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -55,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
-  }, []);
+  }, [logout]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -81,8 +111,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('finsight_user', JSON.stringify(loggedUser));
       
       toast.success(`Welcome back, ${name}!`);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.detail || 'Invalid email or password.';
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      const errorMsg = err.response?.data?.detail || 'Invalid email or password.';
       toast.error(errorMsg);
       throw error;
     } finally {
@@ -114,22 +145,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('finsight_user', JSON.stringify(loggedUser));
 
       toast.success('Registration successful!');
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.detail || 'Unable to connect to server. Please try again.';
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      const errorMsg = err.response?.data?.detail || 'Unable to connect to server. Please try again.';
       toast.error(errorMsg);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('finsight_token');
-    localStorage.removeItem('finsight_user');
-    queryClient.clear();
-    toast.success('Logged out successfully.');
   };
 
   const updateUserCurrency = (currency: string) => {

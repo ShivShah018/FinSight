@@ -41,8 +41,13 @@ const goalController = {
       const userId = req.user.id;
       const { name, target_amount, deadline, auto_fund_amount, auto_fund_category_id } = req.body;
 
-      if (!name || !target_amount) {
+      if (!name || target_amount === undefined || target_amount === null) {
         return res.status(400).json({ detail: 'Missing required goal fields' });
+      }
+
+      const targetNum = parseFloat(target_amount);
+      if (isNaN(targetNum) || targetNum <= 0 || !isFinite(targetNum)) {
+        return res.status(400).json({ detail: 'target_amount must be a positive number' });
       }
 
       if (deadline) {

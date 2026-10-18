@@ -1,11 +1,13 @@
 require('dotenv').config();
 const { initializeSchema } = require('./db');
+const { validateJwtConfig } = require('./utils/jwtConfig');
 const app = require('./app');
 
 const PORT = process.env.API_PORT || process.env.PORT || 8000;
 const HOST = process.env.API_HOST || '0.0.0.0';
 
 async function start() {
+  validateJwtConfig();
   await initializeSchema();
 
   const server = app.listen(PORT, HOST, () => {
